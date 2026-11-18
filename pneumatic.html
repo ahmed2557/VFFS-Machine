@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pneumatic design · Smart VFFS Machine</title>
+<link rel="stylesheet" href="assets/site.css">
+<style>
+#cylSvg{width:100%;height:auto;display:block;background:#fff;border:1px solid var(--line);border-radius:14px}
+#cylSvg .body{fill:#eef1f5;stroke:#1c2633;stroke-width:3}
+#cylSvg .cham{transition:fill .4s}
+#cylSvg .mov,#cylSvg #vg{transition:transform .6s cubic-bezier(.5,0,.2,1)}
+#cylSvg .ln{fill:none;stroke-width:6;stroke-linejoin:round;transition:stroke .3s}
+#cylSvg .ln.pres{stroke:#1f6fd1;stroke-dasharray:12 8;animation:flowF .5s linear infinite}
+#cylSvg .ln.exh{stroke:#b8c2ce;stroke-dasharray:6 8;animation:flowB .8s linear infinite}
+#cylSvg .ln.sup{stroke:#1f6fd1;stroke-dasharray:12 8;animation:flowF .5s linear infinite}
+@keyframes flowF{to{stroke-dashoffset:-20}}
+@keyframes flowB{to{stroke-dashoffset:14}}
+#cylSvg text{font-family:"Segoe UI",Arial,sans-serif}
+#saSvg{width:100%;height:auto;display:block;background:#fff;border:1px solid var(--line);border-radius:14px}
+#saSvg .body{fill:none;stroke:#1c2633;stroke-width:3}
+#saSvg .mov,#saSvg #saVg{transition:transform .6s cubic-bezier(.5,0,.2,1)}
+#saSvg #saSpring{transition:d .6s}
+#saSvg .ln{fill:none;stroke-width:6;stroke-linejoin:round;transition:stroke .3s}
+#saSvg .ln.pres{stroke:#1f6fd1;stroke-dasharray:12 8;animation:flowF .5s linear infinite}
+#saSvg .ln.exh{stroke:#b8c2ce;stroke-dasharray:6 8;animation:flowB .8s linear infinite}
+#saSvg .ln.sup{stroke:#1f6fd1;stroke-dasharray:12 8;animation:flowF .5s linear infinite}
+#saSvg .ln:not(.pres):not(.exh):not(.sup){stroke:#e2e7ee}
+#saSvg text{font-family:"Segoe UI",Arial,sans-serif}
+
+.cylctl{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.state{display:flex;gap:10px;align-items:center;font-weight:600}
+.state i{width:14px;height:14px;border-radius:50%;background:#b8c2ce;display:inline-block}
+.state.on i{background:#1f6fd1;box-shadow:0 0 0 4px rgba(31,111,209,.2)}
+.cyls{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.cyls .dcard .row{grid-template-columns:70px 1fr}
+@media(max-width:980px){.cyls{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.cyls{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="phead"><div class="wrap">
+  <div class="crumb"><b>Page 5 of 8</b> · Pneumatic design</div>
+  <h1>Pneumatic design, step by step</h1>
+  <p class="lead">Compressed air does all the short, fast back-and-forth jobs in the machine. Here is where the air comes from, how a valve moves a single-acting and a double-acting cylinder, where the 12 cylinders are, and what they do during one bag. The circuit is drawn and calculated the way our MSE 552 course does it.</p>
+  <div class="toc"><a href="#simple">1 · In simple words</a><a href="#path">2 · Air path</a><a href="#one">3 · How a valve moves a cylinder</a><a href="#where">4 · The 12 cylinders</a><a href="#time">5 · One bag, second by second</a><a href="#numbers">6 · Air in numbers</a><a href="#drawing">7 · Reading the drawing</a></div>
+</div></div>
+
+<section id="simple"><div class="wrap">
+  <h2><span class="n">1</span>In simple words</h2>
+  <div class="simple">An oil-free <b>compressor</b> fills a tank with air under pressure. The air is <b>dried, cleaned and set to 5 bar</b>. Each <b>cylinder</b> has its own <b>valve</b>. Nine cylinders are <b>single-acting</b>: when the PLC sends 24 V to the valve's <b>solenoid</b>, air pushes the rod out; when the 24 V stops, the valve lets the air out and a <b>spring inside the cylinder</b> brings the rod back. The two diverter cylinders and the reject pusher are <b>double-acting</b>: air pushes them out and air pulls them back. Every valve has a spring too, so if the power or the air fails, every cylinder goes back to a safe rest position by itself.</div>
+
+  <div class="explain"><video src="video/explain/v6_pneumatics.mp4" poster="video/explain/v6_pneumatics.jpg" controls preload="none" playsinline></video><div class="ex-t"><div class="ex-k">▶ Explained from zero · Video 6 of 7 · 3:11</div><h3>Pneumatics: moving with compressed air</h3><p>Compressor, air treatment, single- and double-acting cylinders, 3/2 and 5/2 valves, solenoid and spring, flow control, then our 12 cylinders.</p><div class="ex-ch"><span>Compressor</span><span>Clean the air</span><span>Cylinders</span><span>3/2 and 5/2 valves</span><span>Solenoid and spring</span><span>Flow control</span><span>On our drawing: Figure 3.23</span></div><p class="ex-n">With voice and captions. No engineering knowledge needed.</p></div></div>
+  <div class="words" data-words="compressor,shutoff,frl,pswitch,valve,solenoid,spring,cylinder,flowctrl,tubing"></div>
+  <p class="note">Tap any word to see its picture, meaning and drawing symbol on the <a href="parts.html#pneumatic">Meet the parts</a> page.</p>
+</div></section>
+
+<section id="path" class="alt"><div class="wrap">
+  <h2><span class="n">2</span>Air path, from the compressor to the cylinders</h2>
+  <p class="sub">Air passes through these stations. Follow the arrows.</p>
+  <div class="hf">
+    <div class="box a"><img src="icons/compressor.svg" alt=""><div class="tx"><b>Compressor, tank and dryer</b><span>oil-free, 24 L, 6 to 8 bar, dry air</span></div></div><div class="ar"></div>
+    <div class="box a"><img src="icons/shutoff.svg" alt=""><div class="tx"><b>Shut-off valve 0V1</b><span>manual 3/2, lockable, for repairs</span></div></div><div class="ar"></div>
+    <div class="box a"><img src="icons/frl.svg" alt=""><div class="tx"><b>Combination unit 0Z1</b><span>filter, regulator, gauge: 5 bar</span></div></div><div class="ar"></div>
+    <div class="box a"><img src="icons/pswitch.svg" alt=""><div class="tx"><b>Pressure switch B5</b><span>tells the PLC the air is OK (I1.2)</span></div></div><div class="ar"></div>
+    <div class="box k"><img src="icons/valve.svg" alt=""><div class="tx"><b>12 valves</b><span>nine 3/2 and three 5/2, one per cylinder</span></div></div><div class="ar"></div>
+    <div class="box g"><img src="icons/cylinder.svg" alt=""><div class="tx"><b>12 cylinders</b><span>9 single-acting, 3 double-acting</span></div></div>
+  </div>
+  <div class="grid3" style="margin-top:18px">
+    <div class="card feat"><h4>Low air = stop</h4><p>If the pressure switch B5 opens, the PLC stops the machine and shows an alarm. Cylinders would be too weak or too slow.</p></div>
+    <div class="card feat"><h4>One special pressure</h4><p>The seal band press (9A) gets 3 bar from its own combination unit 0Z2. Its spring takes about 20 N, so 3 bar still presses the film with about 65 N (60 N needed).</p></div>
+    <div class="card feat"><h4>Speed of each rod</h4><p>A one-way flow control sets how fast each rod moves, so nothing slams into its end stop: one on a single-acting cylinder, two on a double-acting one.</p></div>
+  </div>
+</div></section>
+
+<section id="one"><div class="wrap">
+  <h2><span class="n">3</span>How a valve moves a cylinder</h2>
+  <p class="sub">Most of our cylinders (9 of 12) are single-acting. Press the button to send 24 V to the solenoid of the 3/2 valve. Blue = air at 5 bar; grey = used air going out.</p>
+  <div class="fcwrap" style="margin-bottom:26px">
+    <div>
+      <svg id="saSvg" viewBox="0 0 640 330" role="img" aria-label="Interactive drawing of a 3/2 valve and a single-acting cylinder">
+        <text x="150" y="26" font-size="15" font-weight="700" fill="#1c2633">Single-acting cylinder</text>
+        <rect id="saCh" x="150" y="44" width="18" height="56" fill="#fff"/>
+        <g class="mov" id="saMov">
+          <rect x="152" y="46" width="16" height="52" fill="#59636f"/>
+          <rect x="168" y="66" width="260" height="12" fill="#c9ced4" stroke="#1c2633" stroke-width="2"/>
+          <rect x="428" y="56" width="34" height="32" rx="4" fill="#ff7a00" stroke="#1c2633" stroke-width="2"/>
+        </g>
+        <path id="saSpring" d="M170 72 L180 52 L190 92 L200 52 L210 92 L220 52 L230 92 L240 52 L250 92 L260 52 L270 92 L280 52 L290 92 L300 52 L310 92 L320 52 L330 92 L340 72" fill="none" stroke="#1c2633" stroke-width="2"/>
+        <rect class="body" x="148" y="42" width="204" height="60" fill="none"/>
+        <rect x="350" y="62" width="6" height="20" fill="#1c2633"/>
+        <path d="M330 102l-6 10h12z" fill="#b8c2ce"/><text x="342" y="118" font-size="12" fill="#5a6675">air vent</text>
+        <circle cx="170" cy="102" r="5" fill="#1c2633"/><text x="128" y="118" font-size="13" font-weight="700" fill="#1c2633">port 2</text>
+        <path id="saLn" class="ln" d="M265 196 V150 H170 V104"/>
+        <g transform="translate(220 150)"><rect x="-11" y="-9" width="22" height="18" fill="#fff" stroke="#1c2633" stroke-width="1.6"/><path d="M-6 -4l8 8M2 -4l-8 8" stroke="#1c2633" stroke-width="1.4"/></g>
+        <text x="236" y="140" font-size="12" fill="#5a6675">flow control</text>
+        <path class="ln sup" d="M265 312 V250"/>
+        <path id="saEx" class="ln" d="M295 250 V282"/>
+        <path d="M287 282h16l-8 12z" fill="#b8c2ce"/>
+        <text x="273" y="320" font-size="13" fill="#1f6fd1" font-weight="700">1 · air in, 5 bar</text>
+        <text x="306" y="296" font-size="12" fill="#5a6675">3 · air out</text>
+        <path d="M265 196v4M265 246v4M295 246v4" stroke="#1c2633" stroke-width="3"/>
+        <g id="saVg">
+          <rect x="250" y="200" width="60" height="46" fill="#fff" stroke="#1c2633" stroke-width="2.5"/>
+          <rect x="310" y="200" width="60" height="46" fill="#fff" stroke="#1c2633" stroke-width="2.5"/>
+          <path d="M265 244 V206" stroke="#1f6fd1" stroke-width="2.4"/><path d="M265 204l-5 8M265 204l5 8" stroke="#1f6fd1" stroke-width="2.4"/>
+          <path d="M295 244v-10M289 234h12" stroke="#1c2633" stroke-width="2.2"/>
+          <path d="M325 204 L352 242" stroke="#8a95a3" stroke-width="2.4"/><path d="M352 242l-1-9M352 242l-8-4" stroke="#8a95a3" stroke-width="2.4"/>
+          <path d="M325 244v-10M319 234h12" stroke="#1c2633" stroke-width="2.2"/>
+          <rect x="216" y="208" width="34" height="30" fill="#f4c20d" stroke="#1c2633" stroke-width="2"/><path d="M250 208l-34 30" stroke="#1c2633" stroke-width="1.6"/>
+          <text x="233" y="200" font-size="12" text-anchor="middle" fill="#1c2633" font-weight="700">24 V</text>
+          <path d="M370 223h8l4-10 7 20 7-20 7 20 4-10h8" fill="none" stroke="#1c2633" stroke-width="2"/>
+        </g>
+        <text x="470" y="210" font-size="15" font-weight="700" fill="#1c2633">3/2 valve</text>
+        <text x="470" y="228" font-size="12" fill="#5a6675">3 ports: 1 in, 2 to the</text>
+        <text x="470" y="243" font-size="12" fill="#5a6675">cylinder, 3 out</text>
+        
+      </svg>
+      <div class="cylctl"><button class="btn primary" id="saBtn">Send 24 V to the solenoid</button><span class="state" id="saState"><i></i><span>Solenoid OFF · rod in (rest)</span></span></div>
+    </div>
+    <div class="side">
+      <div class="card"><h4 style="margin:0 0 6px">What you are seeing</h4><p style="margin:0;font-size:15.5px;color:var(--soft)" id="saTxt"></p></div>
+      <div class="card"><h4 style="margin:0 0 6px">Nine like this</h4><p style="margin:0;font-size:15.5px;color:var(--soft)">The brush gates, the bucket doors, the seal band press, the cross jaws and the knife. Air does the hard stroke; the spring only brings the rod back.</p></div>
+    </div>
+  </div>
+  <p class="sub">The two diverter cylinders and the reject pusher are double-acting, with a 5/2 valve. Try it below.</p>
+  <div class="fcwrap">
+    <div>
+      <svg id="cylSvg" viewBox="0 0 640 330" role="img" aria-label="Interactive drawing of a valve and a cylinder">
+        <!-- cylinder -->
+        <text x="150" y="26" font-size="15" font-weight="700" fill="#1c2633">Double-acting cylinder</text>
+        <rect class="cham" id="chA" x="150" y="44" width="200" height="56" fill="#fff"/>
+        <rect class="cham" id="chB" x="150" y="44" width="200" height="56" fill="#fff"/>
+        <g class="mov" id="mov">
+          <rect x="152" y="46" width="16" height="52" fill="#59636f"/>
+          <rect x="168" y="66" width="260" height="12" fill="#c9ced4" stroke="#1c2633" stroke-width="2"/>
+          <rect x="428" y="56" width="34" height="32" rx="4" fill="#ff7a00" stroke="#1c2633" stroke-width="2"/>
+          <text x="445" y="112" font-size="12" text-anchor="middle" fill="#5a6675">tool</text>
+        </g>
+        <rect class="body" x="148" y="42" width="204" height="60" fill="none"/>
+        <rect x="350" y="62" width="6" height="20" fill="#1c2633"/>
+        <!-- ports -->
+        <circle cx="170" cy="102" r="5" fill="#1c2633"/><text x="178" y="119" font-size="13" font-weight="700" fill="#1c2633">A</text>
+        <circle cx="330" cy="102" r="5" fill="#1c2633"/><text x="338" y="119" font-size="13" font-weight="700" fill="#1c2633">B</text>
+        <!-- lines to the valve -->
+        <path id="lnA" class="ln" d="M255 196 V150 H170 V104"/>
+        <path id="lnB" class="ln" d="M305 196 V150 H330 V104"/>
+        <!-- flow controls -->
+        <g transform="translate(170 132)"><rect x="-11" y="-9" width="22" height="18" fill="#fff" stroke="#1c2633" stroke-width="1.6"/><path d="M-6 -4l8 8M2 -4l-8 8" stroke="#1c2633" stroke-width="1.4"/></g>
+        <g transform="translate(330 132)"><rect x="-11" y="-9" width="22" height="18" fill="#fff" stroke="#1c2633" stroke-width="1.6"/><path d="M-6 -4l8 8M2 -4l-8 8" stroke="#1c2633" stroke-width="1.4"/></g>
+        <text x="372" y="137" font-size="12" fill="#5a6675">flow controls</text>
+        <!-- supply and exhausts -->
+        <path class="ln sup" d="M280 312 V250"/>
+        <path id="exR" class="ln" d="M250 250 V282"/>
+        <path id="exS" class="ln" d="M310 250 V282"/>
+        <path d="M242 282h16l-8 12z M302 282h16l-8 12z" fill="#b8c2ce"/>
+        <text x="288" y="320" font-size="13" fill="#1f6fd1" font-weight="700">P · air in, 5 bar</text>
+        <text x="186" y="300" font-size="12" fill="#5a6675">air out</text>
+        <text x="326" y="300" font-size="12" fill="#5a6675">air out</text>
+        <!-- valve: fixed port stubs -->
+        <path d="M255 196v4M305 196v4M250 246v4M280 246v4M310 246v4" stroke="#1c2633" stroke-width="3"/>
+        <!-- valve block (slides) -->
+        <g id="vg">
+          <rect x="240" y="200" width="80" height="46" fill="#fff" stroke="#1c2633" stroke-width="2.5"/>
+          <rect x="320" y="200" width="80" height="46" fill="#fff" stroke="#1c2633" stroke-width="2.5"/>
+          <!-- left box: solenoid ON: P->A, B->S -->
+          <path d="M280 244 L256 204" stroke="#1f6fd1" stroke-width="2.4"/><path d="M256 204l1 9M256 204l7 6" stroke="#1f6fd1" stroke-width="2.4"/>
+          <path d="M305 204 L310 244" stroke="#8a95a3" stroke-width="2.4"/><path d="M310 244l-5-7M310 244l3-8" stroke="#8a95a3" stroke-width="2.4"/>
+          <!-- right box: spring: P->B, A->R -->
+          <path d="M360 244 L385 204" stroke="#1f6fd1" stroke-width="2.4"/><path d="M385 204l-7 6M385 204l-1 9" stroke="#1f6fd1" stroke-width="2.4"/>
+          <path d="M335 204 L330 244" stroke="#8a95a3" stroke-width="2.4"/><path d="M330 244l-3-8M330 244l5-7" stroke="#8a95a3" stroke-width="2.4"/>
+          <!-- solenoid and spring -->
+          <rect x="206" y="208" width="34" height="30" fill="#f4c20d" stroke="#1c2633" stroke-width="2"/><path d="M240 208l-34 30" stroke="#1c2633" stroke-width="1.6"/>
+          <text x="223" y="200" font-size="12" text-anchor="middle" fill="#1c2633" font-weight="700">24 V</text>
+          <path d="M400 223h8l4-10 7 20 7-20 7 20 4-10h8" fill="none" stroke="#1c2633" stroke-width="2"/>
+          <text x="420" y="256" font-size="12" text-anchor="middle" fill="#5a6675">spring</text>
+        </g>
+        <text x="470" y="210" font-size="15" font-weight="700" fill="#1c2633">5/2 valve</text>
+        <text x="470" y="228" font-size="12" fill="#5a6675">the box over the ports</text>
+        <text x="470" y="243" font-size="12" fill="#5a6675">shows where the air goes</text>
+      </svg>
+      <div class="cylctl"><button class="btn primary" id="cylBtn">Send 24 V to the solenoid</button><span class="state" id="cylState"><i></i><span>Solenoid OFF · rod in (rest)</span></span></div>
+    </div>
+    <div class="side">
+      <div class="card"><h4 style="margin:0 0 6px">What you are seeing</h4><p style="margin:0;font-size:15.5px;color:var(--soft)" id="cylTxt"></p></div>
+      <div class="card"><h4 style="margin:0 0 6px">Three like this</h4><p style="margin:0;font-size:15.5px;color:var(--soft)">The two diverter cylinders need force both ways, and the pusher needs a 175 mm stroke, longer than any spring-return cylinder (they stop at 50 mm). The PLC output for each valve is listed in part 4.</p></div>
+    </div>
+  </div>
+</div></section>
+
+<section id="where" class="alt"><div class="wrap">
+  <h2><span class="n">4</span>The 12 cylinders: where they are and what they do</h2>
+  <p class="sub">Orange marks the cylinder in each picture. Size = bore × stroke in mm. "Rest" is where it goes when its valve has no power.</p>
+  <div class="cyls" id="cyls"></div>
+</div></section>
+
+<section id="time"><div class="wrap">
+  <h2><span class="n">5</span>One bag, second by second</h2>
+  <p class="sub">One cycle takes 1.5 s at 40 bags per minute. A coloured bar means the valve is on (or the motor is running). Press Play to watch the cycle 8 times slower.</p>
+  <div class="gantt" id="gantt"><div class="cursor" id="gcur"></div></div>
+  <div class="gctl"><button class="btn primary" id="gPlay">Play</button><span class="now" id="gNow">Time: <b>0.00 s</b></span></div>
+  <div class="grid3" style="margin-top:14px">
+    <div class="card feat"><h4><span class="sw" style="display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--air);margin-right:6px"></span>Air valve on</h4><p>The cylinder is out (working position).</p></div>
+    <div class="card feat"><h4><span class="sw" style="display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--purple);margin-right:6px"></span>Motor running</h4><p>Steppers and gear motors, shown for timing.</p></div>
+    <div class="card feat"><h4><span class="sw" style="display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--red);margin-right:6px"></span>Only for a bad bag</h4><p>The reject pusher works only when the camera says "bad".</p></div>
+  </div>
+  <p class="note">Doors 2 and 3 open in the next two cycles, one bucket per bag. From Figure 3.24 of the report.</p>
+</div></section>
+
+<section id="numbers" class="alt"><div class="wrap">
+  <h2><span class="n">6</span>Air in numbers</h2>
+  <div class="nums">
+    <div><b>5 bar</b><span>working pressure (0.5 MPa)</span></div>
+    <div><b>0.47 L</b><span>of air used per bag</span></div>
+    <div><b>19 L/min</b><span>at 40 bags/min (about 23 with leaks)</span></div>
+    <div><b>≥ 130 L/min</b><span>compressor intake (about 50 L/min delivered at 7 bar)</span></div>
+  </div>
+  <div class="grid3" style="margin-top:14px">
+    <div class="card feat"><h4>Jaws: 40 × 25</h4><p>One single-acting cylinder closes both jaws: 628 N of air force, minus about 66 N spring and 63 N friction = about 500 N, so about 250 N on each jaw.</p></div>
+    <div class="card feat"><h4>Bucket doors: 20 × 50</h4><p>The door needs 37 mm of the 50 mm stroke and 44 N of the 122 N available. The gas spring keeps the door shut if the air fails.</p></div>
+    <div class="card feat"><h4>Reject pusher: 20 × 175</h4><p>Double-acting, because 170 mm is too long for a spring. Out and back in about 0.7 s. Its 8 mm rod can carry about 460 N before buckling (Euler), against 141 N.</p></div>
+  </div>
+</div></section>
+
+<section id="drawing"><div class="wrap">
+  <h2><span class="n">7</span>Reading the pneumatic drawing</h2>
+  <p class="sub">The report drawing (Figure 3.23) uses the symbols of our MSE 552 course. Read it from the bottom up: air leaves the compressor and tank 0Z0, passes the dryer, the shut-off valve 0V1, the combination unit 0Z1 and the pressure switch B5, then feeds the 12 valves (1V–12V), which feed the 12 cylinders (1A–12A) at the top. A cylinder with a spring drawn inside is single-acting.</p>
+  <div class="grid4" style="margin-bottom:16px" id="symGrid"></div>
+  <figure class="figwide" data-zoom="img/pneumatic.jpg" data-cap="Figure 3.23: pneumatic circuit"><img src="img/pneumatic.jpg" alt="Pneumatic circuit" loading="lazy"><figcaption>Figure 3.23: pneumatic circuit. Tap to enlarge.</figcaption></figure>
+</div></section>
+
+<div id="pn"></div>
+<script src="assets/site.js"></script>
+<script>
+(function(){
+  /* --- single-acting interactive --- */
+  (function(){
+    let on=false;
+    const m=document.getElementById('saMov'), sp=document.getElementById('saSpring'), vg=document.getElementById('saVg'), ch=document.getElementById('saCh'), ln=document.getElementById('saLn'), ex=document.getElementById('saEx');
+    const b=document.getElementById('saBtn'), st=document.getElementById('saState'), tx=document.getElementById('saTxt');
+    function d(){
+      const px=on?150:0;
+      m.style.transform='translateX('+px+'px)';
+      const x0=170+px, x1=340, n=16, stp=(x1-x0)/n; let p='M'+x0+' 72';
+      for(let i=1;i<n;i++) p+=' L'+(x0+i*stp).toFixed(1)+' '+(i%2?52:92);
+      sp.setAttribute('d',p+' L'+x1+' 72');
+      vg.style.transform=on?'translateX(0px)':'translateX(-60px)';
+      ch.setAttribute('width',18+px); ch.setAttribute('fill',on?'#cfe2fa':'#fff');
+      ln.setAttribute('class','ln '+(on?'pres':'exh')); ex.setAttribute('class','ln '+(on?'':'exh'));
+      b.textContent=on?'Remove the 24 V':'Send 24 V to the solenoid';
+      st.classList.toggle('on',on); st.querySelector('span').textContent=on?'Solenoid ON · rod out (working)':'Solenoid OFF · rod in (rest)';
+      tx.innerHTML=on?'The solenoid pushes the valve. Its left box is now over the ports: air from <b>1</b> goes to <b>2</b>, fills the cylinder and pushes the rod <b>out</b>, squeezing the spring. Port 3 is closed.'
+        :'No 24 V, so the valve spring holds the right box over the ports: the cylinder is joined to <b>3</b> and its air goes out. The <b>spring inside the cylinder</b> pushes the rod back <b>in</b>. Port 1 is closed. This is also what happens at an emergency stop or if the air fails.';
+    }
+    b.onclick=()=>{on=!on;d();}; d();
+  })();
+  /* --- interactive cylinder --- */
+  let on = false;
+  const mov = document.getElementById('mov'), vg = document.getElementById('vg'), chA = document.getElementById('chA'), chB = document.getElementById('chB');
+  const lnA = document.getElementById('lnA'), lnB = document.getElementById('lnB'), exR = document.getElementById('exR'), exS = document.getElementById('exS');
+  const btn = document.getElementById('cylBtn'), st = document.getElementById('cylState'), tx = document.getElementById('cylTxt');
+  function draw(){
+    mov.style.transform = on ? 'translateX(166px)' : 'translateX(0px)';
+    vg.style.transform = on ? 'translateX(0px)' : 'translateX(-80px)';
+    // chambers: A = left of piston, B = right of piston
+    const px = on ? 166 : 0;
+    chA.setAttribute('width', 2 + px + 16); chA.setAttribute('fill', on ? '#cfe2fa' : '#fff');
+    chB.setAttribute('x', 168 + px); chB.setAttribute('width', 182 - px); chB.setAttribute('fill', on ? '#fff' : '#cfe2fa');
+    lnA.setAttribute('class', 'ln ' + (on ? 'pres' : 'exh')); lnB.setAttribute('class', 'ln ' + (on ? 'exh' : 'pres'));
+    exR.setAttribute('class', 'ln ' + (on ? '' : 'exh')); exS.setAttribute('class', 'ln ' + (on ? 'exh' : ''));
+    if (!on) { exR.style.stroke = ''; exS.style.stroke = '#e2e7ee'; } else { exS.style.stroke = ''; exR.style.stroke = '#e2e7ee'; }
+    btn.textContent = on ? 'Remove the 24 V' : 'Send 24 V to the solenoid';
+    st.classList.toggle('on', on); st.querySelector('span').textContent = on ? 'Solenoid ON · rod out (working)' : 'Solenoid OFF · rod in (rest)';
+    tx.innerHTML = on
+      ? 'The solenoid pushes the valve block to the right. Its left box is now over the ports: air from <b>P</b> goes to port <b>A</b>, fills the left side of the cylinder and pushes the rod <b>out</b>. Air on the right side leaves through <b>B</b> and the valve exhaust.'
+      : 'No 24 V, so the <b>spring</b> holds the valve block to the left. Its right box is over the ports: air from <b>P</b> goes to port <b>B</b> and holds the rod <b>in</b>. Air on the left side leaves through <b>A</b>. This is also what happens at an emergency stop.';
+  }
+  btn.onclick = () => { on = !on; draw(); };
+  draw();
+
+  /* --- cylinders --- */
+  const C = [
+    ['1A, 2A', 'Diverter', 'parts/cyl_diverter.jpg', '16 × 45, double-acting (two, back to back)', 'Y1, Y2 · Q8.0, Q8.1', 'Two cylinders back to back give three exact stops: both in = lane 1, one out = lane 2, both out = lane 3. Each cylinder only goes end to end, so a 5/2 valve is enough. A 5/3 valve could stop one cylinder in the middle, but air is springy, so that middle point would drift.', 'Back to its rest stop'],
+    ['3A–5A', 'Brush gates', 'parts/cyl_gates.jpg', '16 × 42, single-acting', 'Y3–Y5 · Q8.2–Q8.4', 'Air opens the brush gate to fill a bucket; the spring closes it at the cut-off weight.', 'Gate closed (spring)'],
+    ['6A–8A', 'Bucket doors', 'parts/cyl_doors.jpg', '20 × 50, single-acting', 'Y6–Y8 · Q8.5–Q8.7', 'A roller on the rod pushes the door lever open (122 N for the 44 N needed). A 5 mm gap keeps it off the bucket while weighing.', 'Door held shut by its gas spring, even with no air'],
+    ['9A', 'Seal band press', 'img/sealband.jpg', '20 × 10, single-acting, at 3 bar', 'Y9 · Q9.0', 'Presses the heated band onto the film seam while the film moves.', 'Band lifted off the film'],
+    ['10A', 'Cross jaws', 'parts/cyl_jaws.jpg', '40 × 25 compact, single-acting', 'Y10 · Q9.1', 'On the jaw carriage. Closes both jaws at once through racks and pinions: about 500 N, so about 250 N on each jaw.', 'Jaws open (spring)'],
+    ['11A', 'Knife', 'parts/cyl_knife.jpg', '12 × 20, single-acting', 'Y11 · Q9.2', 'Pushes the blade through the middle of the seal.', 'Knife back (spring)'],
+    ['12A', 'Reject pusher', 'parts/cyl_reject.jpg', '20 × 175, double-acting', 'Y12 · Q9.3', 'Pushes a bad bag off the conveyor into the reject tray.', 'Pusher back'],
+  ];
+  document.getElementById('cyls').innerHTML = C.map(c => '<article class="dcard"><div class="pic" data-zoom="' + c[2] + '" data-cap="' + c[0] + ' ' + c[1] + '"><img src="' + c[2] + '" alt="' + c[1] + '" loading="lazy"><span class="no">' + c[0] + '</span></div><div class="body"><h4>' + c[1] + '</h4>' +
+    '<div class="row"><span>Size</span><span>' + c[3] + '</span></div><div class="row"><span>Valve</span><span class="mono" style="white-space:normal">' + c[4] + '</span></div><div class="row"><span>Job</span><span>' + c[5] + '</span></div><div class="row"><span>Rest</span><span>' + c[6] + '</span></div></div></article>').join('');
+
+  /* --- symbols --- */
+  const { SYM } = window.VFFS;
+  const S = [['cylsa', 'Single-acting cylinder', 'spring brings the rod back'], ['cylinder', 'Double-acting cylinder', 'air both ways'], ['valve32', '3/2 valve', '3 ports, 2 positions'], ['valve', '5/2 valve', '5 ports, 2 positions'], ['solenoid', 'Solenoid', 'electric push, 24 V'], ['spring', 'Spring', 'pushes the valve back'], ['flowctrl', 'Flow control', 'sets the rod speed'], ['frl', 'Combination unit', 'filter, regulator, gauge'], ['shutoff', 'Shut-off valve', 'closes the air line'], ['pswitch', 'Pressure switch', 'air OK signal']];
+  document.getElementById('symGrid').innerHTML = S.map(s => '<div class="card" style="display:flex;gap:12px;align-items:center;padding:12px 14px">' + SYM[s[0]] + '<div><b style="display:block;font-size:15px">' + s[1] + '</b><span style="font-size:13.5px;color:var(--soft)">' + s[2] + '</span></div></div>').join('');
+
+  /* --- timeline (from Figure 3.24) --- */
+  const R = [
+    ['Film and seal band motors', 'M3, M4, M6', [[0, 1.5]], 'm'],
+    ['Seal band press', '9A · Y9', [[0, 1.5]]],
+    ['Cross jaws', '10A · Y10', [[0, 0.55]]],
+    ['Knife', '11A · Y11', [[0.4, 0.5]]],
+    ['Jaw carriage', 'M5: down, then back up', [[0, 1.0]], 'm'],
+    ['Bucket door 1', '6A · Y6', [[0, 0.55]]],
+    ['Brush gate 1', '3A · Y3: opens after door 1', [[0.75, 1.5]]],
+    ['Brush gate 2', '4A · Y4: closes at cut-off', [[0, 0.65]]],
+    ['Brush gate 3', '5A · Y5: bucket 3 filling', [[0, 1.5]]],
+    ['Diverters', '1A, 2A · Y1, Y2: lane 3 → 1', [[0, 0.78]]],
+    ['Camera trigger', 'Q9.4', [[0.9, 0.95]]],
+    ['Reject pusher', '12A · Y12: bad bag only', [[0.4, 1.1]], 'opt'],
+    ['Unwind motor', 'M1: when the dancer asks', [[0.2, 0.9]], 'm'],
+    ['Conveyor', 'M2', [[0, 1.5]], 'm'],
+  ];
+  const g = document.getElementById('gantt');
+  g.insertAdjacentHTML('beforeend', R.map((r, i) => '<div class="gr" data-i="' + i + '"><div class="nm">' + r[0] + '<small>' + r[1] + '</small></div><div class="lane">' + r[2].map(b => '<i class="' + (r[3] || '') + '" style="left:' + (b[0] / 1.5 * 100) + '%;width:' + Math.max(1.2, (b[1] - b[0]) / 1.5 * 100) + '%"></i>').join('') + '</div></div>').join('') +
+    '<div class="axis"><div></div><div><span>0 s</span><span>0.5 s</span><span>1.0 s</span><span>1.5 s</span></div></div>');
+  const cur = document.getElementById('gcur'), now = document.getElementById('gNow'), rows = [...g.querySelectorAll('.gr')];
+  let t = 0, playing = false, last = 0;
+  function place(){
+    const lane = g.querySelector('.lane'), gb = g.getBoundingClientRect(), lb = lane.getBoundingClientRect();
+    cur.style.display = 'block'; cur.style.left = (lb.left - gb.left + lb.width * t / 1.5) + 'px';
+    const act = [];
+    rows.forEach((r, i) => { const a = R[i][2].some(b => t >= b[0] && t <= b[1]); r.classList.toggle('on', a); if (a && R[i][3] !== 'm' && R[i][3] !== 'opt') act.push(R[i][0]); });
+    now.innerHTML = 'Time: <b>' + t.toFixed(2) + ' s</b> · Air valves on: ' + (act.length ? act.join(', ') : 'none');
+  }
+  function step(ts){ if (!playing) return; const dt = last ? (ts - last) / 1000 : 0; last = ts; t += dt / 8; if (t > 1.5) t -= 1.5; place(); requestAnimationFrame(step); }
+  document.getElementById('gPlay').onclick = function(){ playing = !playing; this.textContent = playing ? 'Pause' : 'Play'; last = 0; if (playing) requestAnimationFrame(step); };
+  g.addEventListener('click', e => { const lane = g.querySelector('.lane').getBoundingClientRect(); const x = (e.clientX - lane.left) / lane.width; if (x >= 0 && x <= 1) { t = x * 1.5; place(); } });
+  window.addEventListener('resize', place); place();
+})();
+</script>
+</body>
+</html>

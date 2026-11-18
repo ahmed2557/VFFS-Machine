@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Control and software · Smart VFFS Machine</title>
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<div class="phead"><div class="wrap">
+  <div class="crumb"><b>Page 6 of 8</b> · Control and software</div>
+  <h1>Control and software</h1>
+  <p class="lead">How the PLC runs the machine from switch-on to full speed, how it checks the weight and the camera, and the programs we wrote.</p>
+  <div class="toc"><a href="#overview">1 · Who talks to whom</a><a href="#start">2 · From switch-on to running</a><a href="#weight">3 · Weight rules</a><a href="#camera">4 · Camera check</a><a href="#software">5 · Our software</a></div>
+</div></div>
+
+<section id="overview"><div class="wrap">
+  <h2><span class="n">1</span>Who talks to whom</h2>
+  <div class="words" data-words="plc,hmi,esp32,pi,opto"></div>
+  <div class="hf" style="margin-top:16px">
+    <div class="box"><img src="icons/loadcell.svg" alt=""><div class="tx"><b>Sensors</b><span>buttons, load cells, encoder, camera answer</span></div></div><div class="ar"></div>
+    <div class="box k"><img src="icons/plc.svg" alt=""><div class="tx"><b>S7-1200 PLC</b><span>runs the steps, one after another</span></div></div><div class="ar"></div>
+    <div class="box g"><img src="icons/stepper.svg" alt=""><div class="tx"><b>Muscles</b><span>6 motors, 3 heaters, 12 valves</span></div></div>
+  </div>
+  <div class="hf" style="margin-top:14px">
+    <div class="box k"><img src="icons/plc.svg" alt=""><div class="tx"><b>PLC</b><span>network cable (PROFINET)</span></div></div><div class="ar"></div>
+    <div class="box"><img src="icons/hmi.svg" alt=""><div class="tx"><b>Touch screen</b><span>on the cabinet door</span></div></div><div class="ar"></div>
+    <div class="box"><img src="icons/esp32.svg" alt=""><div class="tx"><b>ESP32</b><span>RS-485 wire (Modbus RTU)</span></div></div><div class="ar"></div>
+    <div class="box"><img src="icons/wifi.svg" alt=""><div class="tx"><b>Wi-Fi</b><span>new data every second</span></div></div><div class="ar"></div>
+    <div class="box g"><img src="icons/phone.svg" alt=""><div class="tx"><b>Website and app</b><span>watch and control</span></div></div>
+  </div>
+</div></section>
+
+<section id="start" class="alt"><div class="wrap">
+  <h2><span class="n">2</span>From switch-on to running</h2>
+  <p class="sub">The PLC moves through these states. A stop or a fault can happen at any step; after any stop the operator must press Reset.</p>
+
+  <div class="explain"><video src="video/explain/v7_together.mp4" poster="video/explain/v7_together.jpg" controls preload="none" playsinline></video><div class="ex-t"><div class="ex-k">▶ Explained from zero · Video 7 of 7 · 2:43</div><h3>Putting it all together: one bag</h3><p>The machine states from power-on to automatic, faults, and one bag from the film to the reject tray.</p><div class="ex-ch"><span>States</span><span>Power on to auto</span><span>Faults and E-stop</span><span>One bag</span><span>Our state diagram and main cycle</span></div><p class="ex-n">With voice and captions. No engineering knowledge needed.</p></div></div>
+  <div class="fcwrap">
+    <div class="fc">
+      <div class="n"><span class="num">1</span><img src="icons/mainswitch.svg" alt=""><div class="t"><b>Idle</b><span>Power on, everything at rest. Waits for Start.</span></div></div><div class="ar"></div>
+      <div class="n"><span class="num">2</span><img src="icons/inductive.svg" alt=""><div class="t"><b>Homing</b><span>The jaw lift finds its home switch. Must finish within 30 s, or Fault.</span></div></div><div class="ar"></div>
+      <div class="n"><span class="num">3</span><img src="icons/heater.svg" alt=""><div class="t"><b>Ready / Preheat</b><span>Heaters warm to 120 °C. Must be ready within 15 min, or Fault.</span></div></div><div class="ar"></div>
+      <div class="n"><span class="num">4</span><img src="icons/candy.svg" alt=""><div class="t"><b>Filling</b><span>All three buckets fill to 30 g once before the first bag.</span></div></div><div class="ar"></div>
+      <div class="n g"><span class="num">5</span><img src="icons/bag.svg" alt=""><div class="t"><b>Auto</b><span>Non-stop: one bag every 1.5 s. If no bucket is ready, the film stops at the cut point and the band lifts, so no empty bag is made.</span></div></div><div class="ar"></div>
+      <div class="n"><span class="num">6</span><img src="icons/buttons.svg" alt=""><div class="t"><b>Stopping</b><span>Stop pressed: finish the current bag, then back to Idle.</span></div></div>
+    </div>
+    <div class="side">
+      <div class="card"><h4 style="margin:0 0 6px">Manual</h4><p style="margin:0;font-size:15.5px;color:var(--soft)">Selector on Manual: the operator can move each cylinder and motor one at a time from the screen, for setting up and cleaning.</p></div>
+      <div class="card" style="border-color:#e7a59c"><h4 style="margin:0 0 6px;color:var(--red)">Fault and E-stop</h4><p style="margin:0;font-size:15.5px;color:var(--soft)">A fault (time-out, low air, driver alarm, camera silent) or an emergency stop stops the machine safely. It restarts only after Reset. See the <a href="electrical.html#estop">E-stop chart</a>.</p></div>
+      <figure class="fig" data-zoom="img/states.jpg" data-cap="Figure 3.21: machine states"><img src="img/states.jpg" alt="" loading="lazy"><figcaption>All states<span>Figure 3.21</span></figcaption></figure>
+    </div>
+  </div>
+</div></section>
+
+<section id="weight"><div class="wrap">
+  <h2><span class="n">3</span>Weight rules in the PLC</h2>
+  <div class="grid3">
+    <div class="card feat"><h4>1 · Tare every time</h4><p>The PLC zeroes each bucket before it fills, so dust or a stuck candy does not change the weight.</p></div>
+    <div class="card feat"><h4>2 · Top up or reject</h4><p>More than 2.5 g under: the gate opens again to top up. Over-weight: the dose is dropped and its bag is rejected.</p></div>
+    <div class="card feat"><h4>3 · Legal limit</h4><p>OIML R 87 allows 9 % under on 30 g (2.7 g), so 27.3 g. Our PLC limit is stricter: 27.5 g.</p></div>
+  </div>
+  <p class="note">The weighing signal is followed step by step on the <a href="electrical.html#signals">Electrical page</a>.</p>
+</div></section>
+
+<section id="camera" class="alt"><div class="wrap">
+  <h2><span class="n">4</span>Camera check, step by step</h2>
+  <div class="fcwrap">
+    <div class="fc">
+      <div class="n"><span class="num">1</span><img src="icons/photo.svg" alt=""><div class="t"><b>Bag sensor sees a bag</b><span>Input I0.4. The bag is under the camera.</span></div></div><div class="ar"></div>
+      <div class="n k"><span class="num">2</span><img src="icons/plc.svg" alt=""><div class="t"><b>PLC sends "take a picture"</b><span>Output Q9.4 (CAM_TRIG), through an opto-isolator.</span></div></div><div class="ar"></div>
+      <div class="n"><span class="num">3</span><img src="icons/pi.svg" alt=""><div class="t"><b>Raspberry Pi takes and checks the picture</b><span>A small neural network looks for: empty or misshapen bag, product in the seal, open seal.</span></div></div><div class="ar"></div>
+      <div class="n"><span class="num">4</span><img src="icons/opto.svg" alt=""><div class="t"><b>Pi answers the PLC</b><span>CAM_FAIL (I1.5) = bad or good, then CAM_VALID (I8.0) = answer ready.</span></div></div><div class="ar"></div>
+      <div class="n d"><span class="num">5</span><div class="t"><b>Did the answer come within 1 s?</b></div></div>
+      <div class="split">
+        <div><div class="lbl no">No</div><div class="ar"></div><div class="n s"><img src="icons/estop.svg" alt=""><div class="t"><b>Machine stops</b><span>Camera fault alarm.</span></div></div></div>
+        <div><div class="lbl yes">Yes</div><div class="ar"></div><div class="n d"><div class="t"><b>Is the bag bad?</b></div></div><div class="ar"></div><div class="n g"><img src="icons/cylinder.svg" alt=""><div class="t"><b>Bad: pusher 12A removes it</b><span>When it reaches the pusher (Q9.3). Good bags go on to the crate.</span></div></div></div>
+      </div>
+    </div>
+    <div class="side">
+      <figure class="fig" data-zoom="parts/camera.jpg" data-cap="Camera station"><img src="parts/camera.jpg" alt="" class="" style="object-fit:cover;padding:0"><figcaption>Camera station on the machine</figcaption></figure>
+      <div class="card"><h4 style="margin:0 0 6px">Targets</h4><p style="margin:0;font-size:15.5px;color:var(--soft)">Remove 95 % or more of faulty bags, and less than 2 % of good bags. Training needs about 300 pictures of each fault type. One camera sees one side only; it cannot find tiny leaks.</p></div>
+    </div>
+  </div>
+</div></section>
+
+<section id="software"><div class="wrap">
+  <h2><span class="n">5</span>The software we wrote</h2>
+  <div class="grid3">
+    <div class="card feat"><img src="icons/plc.svg" alt="" style="width:70px;height:52px"><h4>PLC program</h4><p>Siemens TIA Portal, SCL. Step sequence, states, heater PID, weighing, remote commands with a watchdog.</p><p style="margin-top:8px"><span class="st s-test">Written, to compile and test</span></p></div>
+    <div class="card feat"><img src="icons/hmi.svg" alt="" style="width:70px;height:52px"><h4>Touch screen (HMI)</h4><p>Seven windows: Dashboard, Control, Manual, Weighing, Alarms, Remote, About.</p><p style="margin-top:8px"><span class="st s-design">Screens drawn</span></p></div>
+    <div class="card feat"><img src="icons/esp32.svg" alt="" style="width:70px;height:52px"><h4>ESP32 gateway</h4><p>Links the screen to Wi-Fi and serves the website. Commands need a PIN and the Remote switch on the screen.</p><p style="margin-top:8px"><span class="st s-test">Written, to flash and test</span></p></div>
+    <div class="card feat"><img src="icons/wifi.svg" alt="" style="width:70px;height:52px"><h4>Website</h4><p>Seven pages, works on phones, built-in test machine. <a href="#" data-open="webapp/index.html" data-tall="1">Try the demo</a>.</p><p style="margin-top:8px"><span class="st s-sim">Tested in the browser</span></p></div>
+    <div class="card feat"><img src="icons/phone.svg" alt="" style="width:70px;height:52px"><h4>Phone app</h4><p>Flutter app with the same pages as the website.</p><p style="margin-top:8px"><span class="st s-test">Written, to build</span></p></div>
+    <div class="card feat"><img src="icons/pi.svg" alt="" style="width:70px;height:52px"><h4>Camera program</h4><p>Python on the Pi: collects pictures, trains the network, talks to the PLC.</p><p style="margin-top:8px"><span class="st s-test">Self-test only, needs pictures</span></p></div>
+  </div>
+  <h3>Touch screen windows</h3>
+  <div class="shots">
+    <figure data-zoom="img/hmi_dashboard.jpg" data-cap="HMI: Dashboard"><img src="img/hmi_dashboard.jpg" alt="" loading="lazy"><figcaption>Dashboard</figcaption></figure>
+    <figure data-zoom="img/hmi_control.jpg" data-cap="HMI: Control"><img src="img/hmi_control.jpg" alt="" loading="lazy"><figcaption>Control</figcaption></figure>
+    <figure data-zoom="img/hmi_weighing.jpg" data-cap="HMI: Weighing"><img src="img/hmi_weighing.jpg" alt="" loading="lazy"><figcaption>Weighing</figcaption></figure>
+    <figure data-zoom="img/hmi_manual.jpg" data-cap="HMI: Manual"><img src="img/hmi_manual.jpg" alt="" loading="lazy"><figcaption>Manual</figcaption></figure>
+  </div>
+  <h3>Drawings from the report</h3>
+  <div class="figs">
+    <figure class="fig" data-zoom="img/maincycle.jpg" data-cap="Figure 3.20 (a): automatic cycle"><img src="img/maincycle.jpg" alt="" loading="lazy"><figcaption>Automatic cycle<span>Figure 3.20 (a)</span></figcaption></figure>
+    <figure class="fig" data-zoom="img/architecture.jpg" data-cap="Figure 3.19: control architecture"><img src="img/architecture.jpg" alt="" loading="lazy"><figcaption>Control architecture<span>Figure 3.19</span></figcaption></figure>
+    <figure class="fig" data-zoom="img/states.jpg" data-cap="Figure 3.21: machine states"><img src="img/states.jpg" alt="" loading="lazy"><figcaption>Machine states<span>Figure 3.21</span></figcaption></figure>
+  </div>
+</div></section>
+
+<div id="pn"></div>
+<script src="assets/site.js"></script>
+</body>
+</html>

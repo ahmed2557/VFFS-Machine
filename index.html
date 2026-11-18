@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart VFFS Packing Machine</title>
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<header class="hero"><div class="wrap">
+  <div>
+    <span class="kicker">Graduation Project II · Mechatronics Systems Engineering</span>
+    <h1>Smart Vertical Form-Fill-Seal Packing Machine</h1>
+    <p class="lead">A low-cost machine that weighs wrapped candy, makes the bag, fills it, seals it, and checks every bag with a camera.</p>
+    <div class="people"><b>Ahmed Hassan Mohamed Rashad</b> · <b>Kareem Moutaz Abdelsalam Alsharqawi</b><br>Supervisor: <b>Prof. Mostafa Zaki</b> · MSA University, Faculty of Engineering</div>
+    <div class="stats">
+      <div class="stat"><b>30 g</b><span>candy in every bag</span></div>
+      <div class="stat"><b>40+</b><span>bags per minute</span></div>
+      <div class="stat"><b>3</b><span>weigh buckets</span></div>
+      <div class="stat"><b>185,200</b><span>EGP parts cost</span></div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:22px">
+      <a class="btn primary" href="parts.html">Start with the parts →</a>
+      <button class="btn" data-open="film/index.html">▶ Watch the film</button>
+    </div>
+  </div>
+  <figure data-zoom="img/machine.jpg" data-cap="The complete machine (CAD model)"><img src="img/machine.jpg" alt="3D model of the machine with labels"><figcaption>The complete machine (CAD model). Tap to enlarge.</figcaption></figure>
+</div></header>
+
+<section><div class="wrap">
+  <h2>The problem and our aim</h2>
+  <p class="sub">Small factories need to pack candy by weight, but the machines they can afford fill by volume.</p>
+  <div class="grid3">
+    <div class="card prob"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#b5730c" stroke-width="2" stroke-linecap="round"><path d="M12 3v18M5 7h14M7 7l-3 7a4 4 0 0 0 6 0L7 7zM17 7l-3 7a4 4 0 0 0 6 0l-3-7z"/></svg></div><div class="feat"><h4>Weight is not exact</h4><p>The low-cost machines sold in Egypt measure candy by volume, so the weight changes from bag to bag.</p></div></div>
+    <div class="card prob"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#b5730c" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-1-1.6-1.5-3-1.5-1.7 0-3 .9-3 2s1.3 1.7 3 2 3 .9 3 2-1.3 2-3 2c-1.4 0-2.5-.5-3-1.5M12 6v2M12 16v2"/></svg></div><div class="feat"><h4>Weighing machines are expensive</h4><p>An imported machine with a weigher costs about 650,000 EGP.</p></div></div>
+    <div class="card prob"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#b5730c" stroke-width="2" stroke-linecap="round"><path d="M3 8V6a2 2 0 0 1 2-2h2M17 4h2a2 2 0 0 1 2 2v2M21 16v2a2 2 0 0 1-2 2h-2M7 20H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/></svg></div><div class="feat"><h4>No check on each bag</h4><p>A bad seal or an empty bag can reach the customer.</p></div></div>
+  </div>
+  <div class="aim"><b>Our aim:</b> a low-cost, simple machine that packs candy by weight at 40 bags per minute or more, with continuous film, more speed by adding buckets, and a camera check on every bag.</div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Small enough to travel in a car</h2>
+  <p class="sub">Most packing machines arrive on a transport truck and need a crane or a forklift. This one comes apart into a few pieces that fit in an ordinary small car.</p>
+  <div class="grid2">
+    <figure class="figwide" data-zoom="img/transport.jpg" data-cap="Figure 3.18: frame modules and the transport pieces"><img src="img/transport.jpg" alt="The machine split into its transport pieces" loading="lazy"><figcaption>Frame modules and transport pieces (Figure 3.18). Tap to enlarge.</figcaption></figure>
+    <div>
+      <div class="nums" style="grid-template-columns:repeat(2,1fr)">
+        <div><b>800 × 720 mm</b><span>frame outside size</span></div>
+        <div><b>2 modules</b><span>bolted together, legs and hopper come off</span></div>
+        <div><b>900 mm</b><span>longest piece (lower module)</span></div>
+        <div><b>15.6 kg</b><span>heaviest film roll, carried by one person</span></div>
+      </div>
+      <div class="card feat" style="margin-top:14px"><h4>How it travels</h4><p>The lower module (800 × 720 × 900 mm) lies across the rear seat of a small sedan. The upper module (800 × 720 × 870 mm) goes on the front passenger seat. The legs, the hopper and the film roll travel as separate pieces. A small car has about 1,270 mm of rear seat width and about 930 mm of headroom, so each piece fits.</p></div>
+      <div class="card feat" style="margin-top:12px"><h4>Why it matters</h4><p>A small factory can collect the machine itself, move it between workshops, or take it to a fair, with no truck rental, no crane and no special door. The frame bolts together again with standard ISO bolts.</p></div>
+    </div>
+  </div>
+</div></section>
+<section class="alt"><div class="wrap">
+  <h2>Explore the project</h2>
+  <p class="sub">Seven short pages. If you are new to the machine, go in this order.</p>
+  <div class="pages">
+    <a class="pcard" href="parts.html"><div class="pi"><img src="parts/diverter.jpg" alt=""></div><div class="bd"><small>Page 2</small><b>Meet the parts</b><span>A picture and one line for every part and word.</span></div></a>
+    <a class="pcard" href="how.html"><div class="pi"><img src="parts/buckets.jpg" alt=""></div><div class="bd"><small>Page 3</small><b>How it works</b><span>Six stations, from candy to finished bag.</span></div></a>
+    <a class="pcard" href="electrical.html"><div class="pi"><img src="img/cabinet.jpg" alt="Electrical cabinet"></div><div class="bd"><small>Page 4</small><b>Electrical</b><span>Power path, signals, PLC and the emergency stop.</span></div></a>
+    <a class="pcard" href="pneumatic.html"><div class="pi"><img src="img/pneumatic.jpg" alt="Pneumatic circuit" style="object-fit:contain;background:#fff"></div><div class="bd"><small>Page 5</small><b>Pneumatic</b><span>Air path, one valve and one cylinder, the 12 cylinders.</span></div></a>
+    <a class="pcard" href="control.html"><div class="pi"><img src="img/hmi_dashboard.jpg" alt=""></div><div class="bd"><small>Page 6</small><b>Control & software</b><span>Machine states, weight rules, camera, apps.</span></div></a>
+    <a class="pcard" href="watch.html"><div class="pi"><img src="img/film_thumb.jpg" alt=""></div><div class="bd"><small>Page 7</small><b>Watch</b><span>The film, the 3D model, the website demo and videos.</span></div></a>
+    <a class="pcard" href="results.html"><div class="pi"><img src="img/bag.jpg" alt="Finished bag"></div><div class="bd"><small>Page 8</small><b>Results & cost</b><span>Speed, accuracy, cost and the nine objectives.</span></div></a>
+    <a class="pcard" href="parts.html#jaws"><div class="pi"><img src="parts/jaws.jpg" alt=""></div><div class="bd"><small>Quick look</small><b>The flying jaws</b><span>The part that seals and cuts every bag.</span></div></a>
+  </div>
+</div></section>
+
+<div id="pn"></div>
+<script src="assets/site.js"></script>
+</body>
+</html>
