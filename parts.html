@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meet the parts · Smart VFFS Machine</title>
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<div class="phead"><div class="wrap">
+  <div class="crumb"><b>Page 2 of 8</b> · Picture dictionary</div>
+  <h1>Meet the parts</h1>
+  <p class="lead">Every part and every word used on the other pages, with a picture and its meaning. Read this page first, or come back to it when a word is new. Orange marks the part in each 3D picture.</p>
+  <div class="toc"><a href="#machine">Machine parts (26)</a><a href="#electrical">Electrical parts (26)</a><a href="#signals">Signal words (5)</a><a href="#pneumatic">Pneumatic parts (10)</a></div>
+  <p style="margin:18px 0 0"><input id="q" class="dict-search" type="search" placeholder="Search a word, for example: relay, cylinder, load cell"></p>
+</div></div>
+
+<section id="machine"><div class="wrap">
+  <h2><span class="n">1</span>Machine parts, top to bottom</h2>
+  <p class="sub">The numbers follow the candy: from the hopper at the top down to the camera and pusher at the bottom. The small picture shows where the part sits in the whole machine.</p>
+  <div class="dict" id="dm"></div>
+</div></section>
+
+<section id="electrical" class="alt"><div class="wrap">
+  <h2><span class="n">2</span>Electrical parts</h2>
+  <p class="sub">The parts that bring power in, think, sense and move. Most of them sit in the control cabinet.</p>
+  <div class="dict" id="de"></div>
+</div></section>
+
+<section id="signals"><div class="wrap">
+  <h2><span class="n">3</span>Signal words</h2>
+  <p class="sub">Five words that describe how information travels between the parts and the PLC.</p>
+  <div class="dict" id="ds"></div>
+</div></section>
+
+<section id="pneumatic" class="alt"><div class="wrap">
+  <h2><span class="n">4</span>Pneumatic parts</h2>
+  <p class="sub">The parts that make and use compressed air. The small drawing shows the symbol used for each part in the pneumatic drawing.</p>
+  <div class="dict" id="dp"></div>
+</div></section>
+
+<div id="pn"></div>
+<script src="assets/site.js"></script>
+<script>
+(function(){
+  const { G, SYM, SIG } = window.VFFS;
+  const groups = { m: 'dm', e: 'de', s: 'ds', p: 'dp' };
+  const count = { m: 0, e: 0, s: 0, p: 0 };
+  for (const [id, g, name, img, what, job] of G) {
+    count[g]++;
+    const sym = g === 'p' && SYM[id] ? '<div class="sym">' + SYM[id] + '<span>Symbol in the drawing</span></div>' : '';
+    const pic = g === 's'
+      ? '<div class="pic">' + SIG[id] + '</div>'
+      : '<div class="pic" data-zoom="' + img + '" data-cap="' + name + '"><img src="' + img + '" alt="' + name + '" loading="lazy">' + (g === 'm' ? '<span class="no">' + count[g] + '</span>' : '') + '</div>';
+    const html = '<article class="dcard' + (g === 'm' ? '' : ' icon') + '" id="' + id + '" data-q="' + (name + ' ' + what + ' ' + job).toLowerCase() + '">' + pic +
+      '<div class="body"><h4>' + name + '</h4><div class="row"><span>What</span><span>' + what + '</span></div><div class="row"><span>Job</span><span>' + job + '</span></div>' + sym + '</div></article>';
+    document.getElementById(groups[g]).insertAdjacentHTML('beforeend', html);
+  }
+  document.querySelectorAll('#ds .pic svg').forEach(s => { s.style.width = '100%'; s.style.height = '100%'; s.style.padding = '18px 30px'; s.parentElement.style.aspectRatio = '16/9'; s.parentElement.style.cursor = 'default'; s.parentElement.style.background = '#fff'; s.parentElement.style.borderBottom = '1px solid var(--line)'; });
+  const q = document.getElementById('q');
+  q.addEventListener('input', () => {
+    const v = q.value.trim().toLowerCase();
+    document.querySelectorAll('.dcard').forEach(c => c.style.display = !v || c.dataset.q.includes(v) ? '' : 'none');
+    document.querySelectorAll('section[id]').forEach(s => s.style.display = s.querySelector('.dcard:not([style*="none"])') ? '' : 'none');
+  });
+  if (location.hash) { const t = document.querySelector(location.hash); if (t) setTimeout(() => t.scrollIntoView({ block: 'center' }), 50); }
+})();
+</script>
+</body>
+</html>
