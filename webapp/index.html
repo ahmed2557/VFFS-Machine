@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>VFFS Packing Machine</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top">
+  <button class="iconbtn only-small" id="menuBtn" aria-label="Menu"><i data-icon="menu"></i></button>
+  <div class="logos">
+    <span class="full">
+      <img class="lg-l" src="logos/msa_logo.png" alt="MSA University"><img class="lg-d" src="logos/msa_logo_dark.png" alt="MSA University">
+      <span class="lg-sep"></span>
+      <img class="lg-l uog" src="logos/partner_logo.png" alt="University of Greenwich"><img class="lg-d uog" src="logos/partner_logo_dark.png" alt="University of Greenwich">
+    </span>
+    <span class="marks">
+      <img class="lg-l" src="logos/msa_mark.png" alt="MSA University"><img class="lg-d" src="logos/msa_mark_dark.png" alt="MSA University">
+      <img class="lg-l" src="logos/partner_mark.png" alt="University of Greenwich"><img class="lg-d" src="logos/partner_mark_dark.png" alt="University of Greenwich">
+    </span>
+  </div>
+  <div class="title">
+    <div class="t1">VFFS Packing Machine</div>
+    <div class="t2">Wrapped hard candy, 30 g bags</div>
+  </div>
+  <div class="spacer"></div>
+  <span class="testtag" id="testTag" hidden>TEST<span class="long"> MODE</span></span>
+  <div class="chip" id="chipState"><span class="dot"></span><span id="chipStateText">Offline</span></div>
+  <button class="chip link" id="chipLink"><i data-icon="wifi_off"></i><span id="chipLinkText">Not connected</span></button>
+  <button class="iconbtn" id="themeBtn" aria-label="Light or dark"><i data-icon="dark_mode"></i></button>
+</header>
+
+<div class="scrim" id="scrim"></div>
+<nav class="side" id="side">
+  <a href="#dashboard" data-page="dashboard"><i data-icon="dashboard"></i><span>Dashboard</span></a>
+  <a href="#control" data-page="control"><i data-icon="tune"></i><span>Control</span></a>
+  <a href="#manual" data-page="manual"><i data-icon="back_hand"></i><span>Manual</span></a>
+  <a href="#weighing" data-page="weighing"><i data-icon="scale"></i><span>Weighing</span></a>
+  <a href="#alarms" data-page="alarms"><i data-icon="notifications"></i><span>Alarms and history</span><b class="badge" id="navAlarmCount" hidden>0</b></a>
+  <a href="#connection" data-page="connection"><i data-icon="lan"></i><span>Connection</span></a>
+  <a href="#test" data-page="test" id="navTest" hidden><i data-icon="science"></i><span>Test panel</span></a>
+  <a href="#about" data-page="about"><i data-icon="info"></i><span>About</span></a>
+</nav>
+
+<main id="main">
+  <div class="banner" id="banner" hidden><i data-icon="warning"></i><span id="bannerText"></span><button class="btn small" id="bannerBtn">Open</button></div>
+
+  <!-- ===================== DASHBOARD ===================== -->
+  <section id="page-dashboard" class="page">
+    <h1>Dashboard</h1>
+    <div class="grid g4">
+      <div class="card kpi"><div class="lab"><i data-icon="speed"></i>Speed</div><div class="big"><span id="dBpm">-</span><small>bags/min</small></div><div class="sub">Set: <span id="dSetBpm">-</span> bags/min</div></div>
+      <div class="card kpi"><div class="lab"><i data-icon="check_circle"></i>Good bags</div><div class="big"><span id="dGood">-</span></div><div class="sub">Made: <span id="dMade">-</span></div></div>
+      <div class="card kpi"><div class="lab"><i data-icon="block"></i>Rejected</div><div class="big"><span id="dRej">-</span></div><div class="sub"><span id="dRejPct">-</span> % of the bags made</div></div>
+      <div class="card kpi"><div class="lab"><i data-icon="scale"></i>Mean dose</div><div class="big"><span id="dMean">-</span><small>g</small></div><div class="sub">Give-away: <span id="dGive">-</span> g</div></div>
+    </div>
+    <div class="grid g3">
+      <div class="card">
+        <h2>Machine state</h2>
+        <div class="statebig" id="dState">-</div>
+        <ol class="steps" id="dSteps">
+          <li data-s="0">Idle</li><li data-s="5">Homing</li><li data-s="10">Preheat</li><li data-s="20">Filling</li><li data-s="30">Running</li>
+        </ol>
+        <div class="row3"><div><span class="k">Last dose</span><span class="v"><span id="dLast">-</span> g</span></div><div><span class="k">Lane</span><span class="v" id="dLane">-</span></div><div><span class="k">Remote</span><span class="v" id="dRemote">-</span></div></div>
+      </div>
+      <div class="card">
+        <h2>Temperatures</h2>
+        <div class="temp"><div class="k">Cross-seal jaws</div><div class="tv"><span id="dTj">-</span> °C</div><div class="bar"><span id="dTjBar"></span><em id="dTjSp"></em></div><div class="sub">Set point <span id="dSpJ">-</span> °C</div></div>
+        <div class="temp"><div class="k">Back-seal band</div><div class="tv"><span id="dTb">-</span> °C</div><div class="bar"><span id="dTbBar"></span><em id="dTbSp"></em></div><div class="sub">Set point <span id="dSpB">-</span> °C</div></div>
+        <div class="sub" id="dHeat"></div>
+      </div>
+      <div class="card">
+        <h2>Speed, last 10 minutes</h2>
+        <canvas id="cDash" height="170" style="height:170px"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== CONTROL ===================== -->
+  <section id="page-control" class="page" hidden>
+    <h1>Control</h1>
+    <div class="note" id="cNote"></div>
+    <div class="grid g2 ctl">
+      <div class="card">
+        <h2>Run</h2>
+        <div class="runbtns">
+          <button class="btn ok big" id="bStart"><i data-icon="play_arrow"></i>Start</button>
+          <button class="btn danger big" id="bStop"><i data-icon="stop"></i>Stop</button>
+          <button class="btn big" id="bReset"><i data-icon="restart_alt"></i>Reset</button>
+        </div>
+        <h2>Heaters and counters</h2>
+        <div class="btnrow">
+          <button class="btn" id="bHeatOn"><i data-icon="mode_heat"></i>Heat on</button>
+          <button class="btn" id="bHeatOff"><i data-icon="cancel"></i>Heat off</button>
+          <button class="btn" id="bClear"><i data-icon="delete"></i>Clear counters</button>
+        </div>
+        <p class="sub">Stop always works. The emergency stop and the guard switch are hard-wired and do not pass through this page.</p>
+      </div>
+      <div class="card">
+        <h2>Settings</h2>
+        <div id="setRows"></div>
+        <div class="sub" id="sCheck"></div>
+        <div class="btnrow"><button class="btn primary" id="bApply"><i data-icon="sync"></i>Send to the PLC</button><button class="btn" id="bRevert"><i data-icon="refresh"></i>Copy from the PLC</button></div>
+        <p class="sub">The PLC takes new settings only in Idle, and only if every value is inside its limits.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== MANUAL ===================== -->
+  <section id="page-manual" class="page" hidden>
+    <h1>Manual</h1>
+    <div class="note" id="mNote"></div>
+    <div class="btnrow"><button class="btn" id="mUnlock"><i data-icon="lock"></i><span>Unlock with PIN</span></button></div>
+    <div class="grid g3" id="mGroups"></div>
+  </section>
+
+  <!-- ===================== WEIGHING ===================== -->
+  <section id="page-weighing" class="page" hidden>
+    <h1>Weighing</h1>
+    <div class="grid g3" id="wBuckets"></div>
+    <div class="grid g4">
+      <div class="card kpi"><div class="lab">Mean dose</div><div class="big"><span id="wMean">-</span><small>g</small></div></div>
+      <div class="card kpi"><div class="lab">Mean give-away</div><div class="big"><span id="wGive">-</span><small>g</small></div></div>
+      <div class="card kpi"><div class="lab">Doses under / over</div><div class="big"><span id="wUnder">-</span> / <span id="wOver">-</span></div></div>
+      <div class="card kpi"><div class="lab">Dose waits</div><div class="big"><span id="wWaits">-</span></div></div>
+    </div>
+    <div class="grid g2">
+      <div class="card"><h2>Last doses (g)</h2><canvas id="cDoses" height="210" style="height:210px"></canvas></div>
+      <div class="card"><h2>Give-away of each dose (g)</h2><canvas id="cGive" height="210" style="height:210px"></canvas></div>
+    </div>
+  </section>
+
+  <!-- ===================== ALARMS ===================== -->
+  <section id="page-alarms" class="page" hidden>
+    <h1>Alarms and history</h1>
+    <div class="grid g2">
+      <div class="card"><h2>Active alarms</h2><ul class="alist" id="aActive"></ul><div class="btnrow"><button class="btn" id="aReset"><i data-icon="restart_alt"></i>Reset</button></div></div>
+      <div class="card"><h2>Alarm log</h2><div class="scroll"><table class="log"><thead><tr><th>When</th><th>Event</th><th></th></tr></thead><tbody id="aLog"></tbody></table></div></div>
+    </div>
+    <div class="seg" id="hRange"><button data-r="10m" class="on">10 minutes</button><button data-r="1h">1 hour</button></div>
+    <div class="grid g2">
+      <div class="card"><h2>Speed (bags/min)</h2><canvas id="cBpm" height="180" style="height:180px"></canvas></div>
+      <div class="card"><h2>Mean dose (g)</h2><canvas id="cDose" height="180" style="height:180px"></canvas></div>
+      <div class="card"><h2>Temperatures (°C)</h2><canvas id="cTemp" height="180" style="height:180px"></canvas></div>
+      <div class="card"><h2>Rejected (% of the bags made)</h2><canvas id="cRej" height="180" style="height:180px"></canvas></div>
+    </div>
+  </section>
+
+  <!-- ===================== CONNECTION ===================== -->
+  <section id="page-connection" class="page" hidden>
+    <h1>Connection</h1>
+    <div class="card connhead">
+      <div class="connicon" id="kIcon"></div>
+      <div class="conntext"><div class="connstate" id="kState">Not connected</div><div class="sub" id="kWhere"></div></div>
+      <button class="btn" id="kDisconnect" hidden>Disconnect</button>
+    </div>
+    <div class="grid g2">
+      <div class="card">
+        <h2>Machines</h2>
+        <ul class="machines" id="kList"></ul>
+        <div class="btnrow"><button class="btn" id="kSearch"><i data-icon="search"></i>Search the network</button><span class="sub" id="kSearchMsg"></span></div>
+        <h2>Add a machine</h2>
+        <div class="addrow"><input type="text" id="kAddr" placeholder="192.168.1.50 or vffs.local" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="btn primary" id="kConnect">Connect</button></div>
+        <label class="check"><input type="checkbox" id="kAuto" checked> Connect again by itself if the link drops</label>
+        <p class="sub" id="kHint"></p>
+      </div>
+      <div>
+        <div class="card" id="kStatusCard">
+          <h2>Link details</h2>
+          <table class="kv" id="kConn"></table>
+          <div class="btnrow"><button class="btn primary" id="bTest"><i data-icon="sync"></i>Test the link</button><span class="sub" id="tResult"></span></div>
+        </div>
+        <div class="card" id="kCfgCard" style="margin-top:16px">
+          <h2>Modbus settings (in the ESP32)</h2>
+          <div class="fields">
+            <label>HMI station number<input type="number" id="kSlave" min="1" max="247"></label>
+            <label>Baud rate<select id="kBaud"><option>9600</option><option>19200</option><option>38400</option><option>57600</option><option>115200</option></select></label>
+            <label>Poll time (ms)<input type="number" id="kPoll" min="200" max="5000" step="100"></label>
+            <label>New control PIN (empty = keep)<input type="password" id="kNewPin" maxlength="8" autocomplete="new-password"></label>
+          </div>
+          <div class="btnrow"><button class="btn primary" id="bSaveCfg">Save</button></div>
+          <p class="sub">8 data bits, no parity, 1 stop bit. Reads registers 100 to 139, writes 200 to 215.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== TEST PANEL ===================== -->
+  <section id="page-test" class="page" hidden>
+    <h1>Test panel</h1>
+    <div class="note">You are connected to the test machine, a simulation inside this page. Nothing is sent to a real machine. It answers like the PLC: same limits, same rules, same messages. Control PIN: 1234.</div>
+    <div class="grid g2">
+      <div class="card">
+        <h2>Switches on the machine and the HMI</h2>
+        <div class="tsw" id="tSwitches"></div>
+      </div>
+      <div class="card">
+        <h2>Faults</h2>
+        <div class="tsw" id="tFaults"></div>
+        <p class="sub">A fault stops the machine (state Fault). Clear the cause here, then press Reset on the Control page.</p>
+      </div>
+      <div class="card">
+        <h2>Your test data</h2>
+        <div id="tData"></div>
+        <div class="btnrow"><button class="btn" id="tResetSim"><i data-icon="restart_alt"></i>Start the test machine again</button></div>
+      </div>
+      <div class="card">
+        <h2>How to test</h2>
+        <ol class="howto">
+          <li>Control: press Start. The test machine goes Homing, Preheat, Filling, Running.</li>
+          <li>Change the target speed to 60 with a 120 mm bag: the PLC check refuses it (film too fast).</li>
+          <li>Here: switch Remote control off, then try Start: refused. Stop still works.</li>
+          <li>Here: turn the manual selector on (machine in Idle), then use the Manual page.</li>
+          <li>Here: raise a fault, watch the banner, the alarm log and the state.</li>
+          <li>Here: cut the PLC link or the Wi-Fi, and see how every page reacts.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== ABOUT ===================== -->
+  <section id="page-about" class="page" hidden>
+    <h1>About</h1>
+    <div class="grid g2">
+      <div class="card">
+        <div class="aboutlogos">
+          <img class="lg-l" src="logos/msa_logo.png" alt="MSA University"><img class="lg-d" src="logos/msa_logo_dark.png" alt="MSA University">
+          <img class="lg-l uog" src="logos/partner_logo.png" alt="University of Greenwich"><img class="lg-d uog" src="logos/partner_logo_dark.png" alt="University of Greenwich">
+        </div>
+        <h2 class="abouttitle">Smart Vertical Form-Fill-Seal Packing Machine with AI-Based Vision Inspection and Automated Quality Control</h2>
+        <p>Graduation project, Mechatronics System Engineering, Faculty of Engineering, MSA University, in partnership with the University of Greenwich.</p>
+        <table class="kv">
+          <tr><td>Team</td><td>Ahmed Hassan Mohamed Rashad<br>Kareem Moutaz Abdelsalam Alsharqawi</td></tr>
+          <tr><td>Supervisor</td><td>Prof. Mostafa Zaki</td></tr>
+          <tr><td>Machine</td><td>30 g bags, 40 bags/min (limit 60), three weigh buckets</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h2>Versions</h2>
+        <table class="kv" id="kAbout"></table>
+        <p class="sub">Icons: Material Symbols by Google (Apache License 2.0).</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<dialog id="dlg">
+  <form method="dialog">
+    <h2 id="dlgTitle">Confirm</h2>
+    <div id="dlgBody"></div>
+    <label class="pin">Control PIN<input type="password" id="dlgPin" inputmode="numeric" maxlength="8" autocomplete="off"></label>
+    <div class="btnrow end"><button class="btn" value="cancel">Cancel</button><button class="btn primary" value="ok" id="dlgOk">Send</button></div>
+  </form>
+</dialog>
+<div id="toast"></div>
+
+<script src="icons.js"></script>
+<script src="sim.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
