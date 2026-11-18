@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VFFS Machine Explorer</title>
+<style>
+:root{
+  --bg:#eef0f3; --panel:#ffffff; --ink:#1b1f24; --muted:#5f6772; --line:#dde1e6;
+  --accent:#0b6bcb; --accent-ink:#ffffff; --sel:#ff8a00; --chip:#f3f5f8; --good:#1f8a4c; --bad:#c62828;
+  --viewer:#b8c1cc;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121417; --panel:#1b1e23; --ink:#e9ecef; --muted:#9aa3ad; --line:#2c3138;
+    --accent:#4ea1ff; --accent-ink:#0b1320; --chip:#242930; --viewer:#16191d;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121417; --panel:#1b1e23; --ink:#e9ecef; --muted:#9aa3ad; --line:#2c3138;
+  --accent:#4ea1ff; --accent-ink:#0b1320; --chip:#242930; --viewer:#16191d;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+#app{display:grid;grid-template-columns:330px 1fr;height:100vh}
+#side{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+#side header{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+#side h1{font-size:18px;margin:0 0 2px}
+#side .sub{color:var(--muted);font-size:13px}
+#search{width:100%;margin-top:10px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--chip);color:var(--ink);font:inherit}
+#groups{overflow:auto;flex:1;padding:6px 0 20px}
+.grp{border-bottom:1px solid var(--line)}
+.grp-h{display:flex;align-items:center;gap:8px;padding:9px 12px 9px 16px;cursor:pointer;user-select:none}
+.grp-h .dot{width:12px;height:12px;border-radius:3px;flex:none}
+.grp-h .nm{flex:1;font-weight:600}
+.grp-h .ct{color:var(--muted);font-size:12px}
+.grp-h button{border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:6px;font-size:12px;padding:3px 7px;cursor:pointer}
+.grp-h button.off{opacity:.45}
+.grp ul{list-style:none;margin:0;padding:0 0 6px;display:none}
+.grp.open ul{display:block}
+.grp li{padding:5px 16px 5px 36px;cursor:pointer;font-size:14px;display:flex;gap:6px;align-items:center}
+.grp li:hover{background:var(--chip)}
+.grp li.sel{background:color-mix(in srgb,var(--sel) 18%,transparent);font-weight:600}
+.grp li.hid{opacity:.4}
+.grp li .eye{margin-left:auto;font-size:12px;color:var(--muted)}
+#main{position:relative;min-width:0;background:var(--viewer)}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#toolbar{position:absolute;top:12px;left:12px;right:12px;display:flex;flex-wrap:wrap;gap:8px;pointer-events:none}
+#toolbar>*{pointer-events:auto}
+.tb{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:7px 11px;font:inherit;font-size:14px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.tb.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.tb.wide{display:flex;align-items:center;gap:8px}
+.tb input[type=range]{width:110px}
+#info{position:absolute;right:12px;bottom:12px;width:min(360px,calc(100% - 24px));background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:0 6px 24px rgba(0,0,0,.14);display:none}
+#info.show{display:block}
+#info .grpname{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+#info h2{margin:2px 0 6px;font-size:19px}
+#info p{margin:0 0 8px}
+#info .cad{color:var(--muted);font-size:12px;font-family:ui-monospace,Consolas,monospace}
+#info .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+#info .x{position:absolute;top:8px;right:10px;border:0;background:none;color:var(--muted);font-size:20px;cursor:pointer}
+#tip{position:absolute;pointer-events:none;background:rgba(20,24,30,.88);color:#fff;font-size:13px;padding:4px 8px;border-radius:6px;display:none;white-space:nowrap;transform:translate(12px,12px)}
+#loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--muted)}
+#bar{width:220px;height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+#bar i{display:block;height:100%;width:0;background:var(--accent)}
+#quiz{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);width:min(520px,calc(100% - 24px));background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:0 6px 24px rgba(0,0,0,.14);display:none}
+#quiz.show{display:block}
+#quiz h3{margin:0 0 8px;font-size:16px}
+#quiz .opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#quiz .opts button{text-align:left;padding:9px 10px;border-radius:8px;border:1px solid var(--line);background:var(--chip);color:var(--ink);font:inherit;cursor:pointer}
+#quiz .opts button.right{background:color-mix(in srgb,var(--good) 25%,transparent);border-color:var(--good)}
+#quiz .opts button.wrong{background:color-mix(in srgb,var(--bad) 22%,transparent);border-color:var(--bad)}
+#quiz .fb{margin:8px 0 0;min-height:1.4em}
+#quiz .qrow{display:flex;justify-content:space-between;align-items:center;margin-top:8px;color:var(--muted);font-size:13px}
+#help{position:absolute;left:12px;bottom:12px;color:var(--muted);font-size:12px;background:color-mix(in srgb,var(--panel) 80%,transparent);padding:5px 8px;border-radius:6px}
+#menuBtn{display:none}
+#sim{position:absolute;right:12px;bottom:12px;width:min(370px,calc(100% - 24px));max-height:calc(100% - 80px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;box-shadow:0 6px 24px rgba(0,0,0,.14);display:none;font-size:14px}
+#sim.show{display:block}
+#sim .shead{display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap}
+#sim .shead .tb{padding:4px 8px;font-size:13px}
+#sim ol{margin:8px 0 6px;padding-left:22px}
+#sim li{color:var(--muted);padding:1px 0}
+#sim li.on{color:var(--ink);font-weight:700}
+#sim li.on::marker{color:var(--sel)}
+#sExpl{margin:4px 0 8px;padding:8px 10px;background:var(--chip);border-left:3px solid var(--sel);border-radius:6px;min-height:3em}
+#sW{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px}
+#sim .sout{margin-top:6px;font-size:13px}
+#sC{color:var(--muted);font-size:13px;margin-top:2px}
+#sim .sviews{margin-top:8px;display:flex;gap:5px;align-items:center;flex-wrap:wrap;font-size:13px}
+#sim .sviews .tb{padding:4px 8px;font-size:13px}
+@media (max-width:760px){ #sim{bottom:8px;left:8px;width:calc(100% - 16px);max-height:55%;font-size:13px} #sExpl{min-height:0} }
+@media (max-width:760px){
+  #app{grid-template-columns:1fr;grid-template-rows:58vh 1fr}
+  #main{grid-row:1}
+  #side{grid-row:2;border-right:0;border-top:1px solid var(--line)}
+  #side header{padding:10px 16px}
+  #help{display:none}
+  .tb{padding:6px 9px;font-size:13px}
+  #info{bottom:8px;right:8px;width:calc(100% - 16px);padding:10px 12px}
+  #info h2{font-size:17px}
+  #quiz{bottom:8px}
+  #quiz .opts{grid-template-columns:1fr}
+}
+</style>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+}}
+</script>
+</head>
+<body>
+<div id="app">
+  <aside id="side">
+    <header>
+      <h1>VFFS Machine Explorer</h1>
+      <div class="sub">Click any part to see its name and job. Use the groups to hide or isolate.</div>
+      <input id="search" type="search" placeholder="Search parts (e.g. jaw, load cell)">
+    </header>
+    <div id="groups"></div>
+  </aside>
+  <main id="main">
+    <canvas id="cv"></canvas>
+    <div id="toolbar">
+      <button class="tb" id="bAll">Show all</button>
+      <button class="tb" id="bColor">Colour by group</button>
+      <button class="tb" id="bXray">X-ray</button>
+      <button class="tb on" id="bEdges">Edges</button>
+      <label class="tb wide">Explode <input id="explode" type="range" min="0" max="100" value="0"></label>
+      <button class="tb" id="bReset">Reset view</button>
+      <button class="tb" id="bSim">▶ Simulate</button>
+      <button class="tb" id="bQuiz">Quiz me</button>
+      <button class="tb" id="bTheme">Dark / light</button>
+    </div>
+    <div id="loading"><div id="ltxt">Loading the 3D model…</div><div id="bar"><i></i></div></div>
+    <div id="tip"></div>
+    <div id="sim">
+      <div class="shead"><b>Machine working</b>
+        <span><button class="tb" id="sPlay">Pause</button> <button class="tb" id="sRestart">Restart</button>
+        <select id="sSpeed" class="tb"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select>
+        <button class="tb" id="sExit">Exit</button></span></div>
+      <ol id="sSteps"><li>Start-up: fill all 3 buckets</li><li>Non-stop feeding and weighing</li><li>One bucket opens: 30 g per bag</li><li>Film runs non-stop, flying jaws seal and cut</li></ol>
+      <p id="sExpl"></p>
+      <div id="sW"></div>
+      <div class="sout"><b>Outfeed:</b> <span id="sOut">—</span></div>
+      <div id="sC"></div>
+      <div class="sviews">View: <button class="tb" data-v="all">Whole</button><button class="tb" data-v="dose">Dosing</button><button class="tb" data-v="film">Film</button><button class="tb" data-v="seal">Sealing</button><button class="tb" data-v="out">Outfeed</button></div>
+    </div>
+    <div id="help">Drag to turn · Right-drag to move · Scroll to zoom · Double-click a part to zoom to it</div>
+    <div id="info">
+      <button class="x" id="infoX" aria-label="Close">×</button>
+      <div class="grpname" id="iGrp"></div>
+      <h2 id="iName"></h2>
+      <p id="iDesc"></p>
+      <div class="cad" id="iCad"></div>
+      <div class="row">
+        <button class="tb" id="iZoom">Zoom to it</button>
+        <button class="tb" id="iOnly">Show only this</button>
+        <button class="tb" id="iHide">Hide it</button>
+      </div>
+    </div>
+    <div id="quiz">
+      <h3>Which part is highlighted in orange?</h3>
+      <div class="opts" id="qOpts"></div>
+      <div class="fb" id="qFb"></div>
+      <div class="qrow"><span id="qScore">Score 0 / 0</span><span><button class="tb" id="qNext">Next part</button> <button class="tb" id="qEnd">Stop quiz</button></span></div>
+    </div>
+  </main>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+/* ---------- part catalogue: CAD name -> [group, friendly name, what it does] ---------- */
+const GROUPS = {
+  hop:  {name:'Hopper and diverter',        color:'#e0a100'},
+  lane: {name:'Lanes and brush gates',      color:'#8e5bd6'},
+  weigh:{name:'Weighing and buckets',       color:'#d9534f'},
+  film: {name:'Film path and forming',      color:'#2a9d8f'},
+  seal: {name:'Sealing and cutting',        color:'#e76f51'},
+  out:  {name:'Outfeed, camera and reject', color:'#3a86ff'},
+  frame:{name:'Frame and structure',        color:'#6c757d'},
+  serv: {name:'Electrical and air supply',  color:'#43aa8b'},
+  other:{name:'Other parts',                color:'#999999'},
+};
+const P = {
+ 'Hopper-1':['hop','Hopper','Big stainless box on top. Stores the product before it is dosed. It is bolted on and lifts off for cleaning.'],
+ 'Hopper_Bolts-1':['hop','Hopper flange bolts','Six M10 bolts that hold the hopper flange down on the splitter.'],
+ 'Splitter3-1':['hop','Splitter (with diverter guide rods)','Box under the hopper with three outlets, one for each lane. It also carries the two 8 mm guide rods the diverter chute slides on, and the bracket for the diverter cylinders.'],
+ 'Splitter_Front_Posts-1':['hop','Splitter front posts','Posts that hold up the front of the splitter.'],
+ 'Splitter_Mount_Weldment-1':['hop','Splitter mount weldment','Welded side tabs and skirts that bolt the splitter to the frame.'],
+ 'Splitter_Beam_R126-1':['hop','Splitter beam','Cross beam under the back of the splitter.'],
+ 'Diverter_Shuttle-1':['hop','Diverter chute (shuttle)','Sliding chute under the hopper. It points the product flow into lane 1, 2 or 3, so the lightest bucket gets filled.'],
+ 'AirCyl_Unit-1':['hop','Diverter cylinders (two, back to back)','Two small air cylinders joined back to back. With two strokes they give three fixed chute positions, one for each lane.'],
+ 'AirCyl_RodA-1':['hop','Diverter rod A','Rod of the first diverter cylinder. Its end is pinned to the anchor on the splitter.'],
+ 'AirCyl_RodB-1':['hop','Diverter rod B','Rod of the second diverter cylinder. Its end is pinned to the chute and moves it.'],
+
+ 'Lane_Unit-1':['lane','Three sloped lanes','Three lanes with walls, sloped at 20 degrees. The product slides down them by gravity from the splitter to the gates.'],
+ 'Lane_Beam_R126-1':['lane','Lane beams','Beams under the lane floor. They bolt to the side rails of the frame.'],
+ 'Lane_Beam_Front_R130-1':['lane','Front lane beam','Beam under the front of the lanes, near the gates.'],
+ 'Brush_Strip_1-1':['lane','Brush gate 1','Soft brush gate at the end of lane 1. It turns on an 8 mm shaft to stop or let the product into bucket 1. The brush is gentle on the product.'],
+ 'Brush_Strip_2-1':['lane','Brush gate 2','Brush gate at the end of lane 2 (middle lane).'],
+ 'Brush_Strip_3-1':['lane','Brush gate 3','Brush gate at the end of lane 3.'],
+ 'Cyl_Barrel_B1-1':['lane','Gate cylinder 1 (body)','Small air cylinder that opens and closes brush gate 1 through a slotted lever.'],
+ 'Cyl_Barrel_B2-1':['lane','Gate cylinder 2 (body)','Air cylinder for brush gate 2.'],
+ 'Cyl_Barrel_B3-1':['lane','Gate cylinder 3 (body)','Air cylinder for brush gate 3.'],
+ 'Cyl_Rod_B1-1':['lane','Gate cylinder 1 rod','Moving rod with a clevis. It pushes the lever of gate 1.'],
+ 'Cyl_Rod_B2-1':['lane','Gate cylinder 2 rod','Moving rod with a clevis. It pushes the lever of gate 2.'],
+ 'Cyl_Rod_B3-1':['lane','Gate cylinder 3 rod','Moving rod with a clevis. It pushes the lever of gate 3.'],
+ 'Gate_Cyl_Beam-1':['lane','Gate cylinder beam','Cross beam above the gates that holds the three gate cylinders. Its ends sit on the two gate beam side posts.'],
+
+ 'Weigh_Buckets_R100-1':['weigh','Weigh buckets (3)','Three stainless buckets. Each holds one dose while its load cell weighs it.'],
+ 'Load_Cell_1-1':['weigh','Load cell 1','5 kg single-point load cell. It weighs bucket 1 and sends the weight to the PLC.'],
+ 'Load_Cell_2-1':['weigh','Load cell 2','Load cell that weighs bucket 2.'],
+ 'Load_Cell_3-1':['weigh','Load cell 3','Load cell that weighs bucket 3.'],
+ 'LC_Hanger_R104_1-1':['weigh','Load cell hanger 1','Notched hanger on load cell 1. The bucket hangs on its two pins, so it lifts out for cleaning.'],
+ 'LC_Hanger_R104_2-1':['weigh','Load cell hanger 2','Hanger on load cell 2 that carries bucket 2.'],
+ 'LC_Hanger_R104_3-1':['weigh','Load cell hanger 3','Hanger on load cell 3 that carries bucket 3.'],
+ 'Weigher_Mount-1':['weigh','Load cell mounts','Fixed blocks the load cells are bolted to.'],
+ 'Weigher_Beam-1':['weigh','Weigher beam','Beam that carries the load cell mounts.'],
+ 'Weigh_Door_R103_1-1':['weigh','Bucket door 1','Sloped door under bucket 1. It turns on a shaft. When its lever is pushed, the door opens and the dose drops.'],
+ 'Weigh_Door_R103_2-1':['weigh','Bucket door 2','Door under bucket 2.'],
+ 'Weigh_Door_R103_3-1':['weigh','Bucket door 3','Door under bucket 3.'],
+ 'Strut_Lever_R105_1-1':['weigh','Gas spring lever 1','Lever end of the gas spring that pulls door 1 closed again.'],
+ 'Strut_Lever_R105_2-1':['weigh','Gas spring lever 2','Lever end of the gas spring for door 2.'],
+ 'Strut_Lever_R105_3-1':['weigh','Gas spring lever 3','Lever end of the gas spring for door 3.'],
+ 'Strut_Bracket_R105_1-1':['weigh','Gas spring bracket 1','Fixed end of the gas spring for door 1.'],
+ 'Strut_Bracket_R105_2-1':['weigh','Gas spring bracket 2','Fixed end of the gas spring for door 2.'],
+ 'Strut_Bracket_R105_3-1':['weigh','Gas spring bracket 3','Fixed end of the gas spring for door 3.'],
+ 'Cyl_Barrel_DH1-1':['weigh','Door cylinder 1 (body)','Small air cylinder fixed to the door beam. It opens door 1.'],
+ 'Cyl_Barrel_DH2-1':['weigh','Door cylinder 2 (body)','Air cylinder that opens door 2.'],
+ 'Cyl_Barrel_DH3-1':['weigh','Door cylinder 3 (body)','Air cylinder that opens door 3.'],
+ 'Cyl_Rod_DH1-1':['weigh','Door cylinder 1 rod (with roller)','Rod with a roller at its end. The roller pushes the door lever, like the pedal of a pedal bin. When the rod goes back, the gas spring closes the door.'],
+ 'Cyl_Rod_DH2-1':['weigh','Door cylinder 2 rod (with roller)','Rod and roller that push the lever of door 2.'],
+ 'Cyl_Rod_DH3-1':['weigh','Door cylinder 3 rod (with roller)','Rod and roller that push the lever of door 3.'],
+ 'Door_Cyl_Beam-1':['weigh','Door cylinder beam','Beam that holds the three door cylinders.'],
+ 'Collect_Chute_R100-1':['weigh','Collection funnel','Funnel under the buckets. It joins the doses into one stream that goes down into the forming tube.'],
+ 'Frame_Mounts-1':['lane','Gate beam side posts','Two short posts, one on each side of the machine. Their foot plates bolt to the frame side rails, and their tops hold the two ends of the gate cylinder beam.'],
+
+ 'Unwind_Rev85-1':['film','Film unwind module (roll, rollers, dancer sensor)','Back part of the machine: the film roll, the fixed rollers of the zig-zag film path, and the sensor that reads the dancer angle.'],
+ 'Roll_Shaft_Unit-1':['film','Roll shaft with cone chucks','Removable 25 mm shaft. Two cones hold the 76 mm core of the film roll in the centre.'],
+ 'Safety_Chuck_N_Unit-1':['film','Safety chuck (left)','Holds the square end of the roll shaft. A lock ring stops the shaft jumping out.'],
+ 'Safety_Chuck_P_Unit-1':['film','Safety chuck (right)','Second safety chuck, on the motor side.'],
+ 'Film_Module_Rev74-1':['film','Unwind motor and gearbox','24 V gear motor that turns the film roll through a belt, so the pull belts do not have to pull the heavy roll.'],
+ 'Dancer_Arm_D-1':['film','Spring dancer arm','Swinging arm with rollers. It stores a little film and keeps the film tension steady. Its angle tells the PLC when to run the unwind motor.'],
+ 'Photocell_Slide_B-1':['film','Eye-mark photocell (on slide)','Photocell on a small cross slide. It reads the printed mark on the film so every bag is cut in the right place.'],
+ 'Bag_Former':['film','Forming collar (bag former)','Shaped shoulder that folds the flat film around the tube. Its size sets the bag width.'],
+ 'Forming_Tube-1':['film','Forming tube','Tube under the collar. The film wraps around it, and the product falls through it into the bag.'],
+ 'Film_Tube-1':['film','Film around the tube','The film shown wrapped around the forming tube.'],
+ 'Collar_Mount-1':['film','Collar mount','Plate and screws that hold the collar and tube set on the frame.'],
+ 'Pull_Belts-1':['film','Pull-down belts','Two belts, one on each side of the tube. They grip the film and pull it down one bag length each cycle.'],
+ 'Pull_Belt_Steppers-1':['film','Pull belt stepper motors','Two NEMA 23 stepper motors that drive the pull belts. The PLC sends both the same pulses.'],
+
+ 'VSeal_Unit_R97-1':['seal','Vertical sealer (mount and cylinder)','Mount plate, small air cylinder and backing bar of the vertical (back) sealer.'],
+ 'VSeal_Heater-1':['seal','Vertical heater bar','Hot bar that presses the two film edges together to make the long back seam (fin seal).'],
+ 'Jaw_Carriage-2':['seal','Jaw carriage','Light frame that carries both sealing jaws, the jaw cylinder, the rack-and-pinion synchroniser and the valves. It moves up and down with the film (flying jaws).'],
+ 'Jaw_Front-2':['seal','Front sealing jaw','Heated front jaw. It also holds the knife.'],
+ 'Jaw_Back-1':['seal','Back sealing jaw','Heated back jaw. It meets the front jaw at the centre of the tube.'],
+ 'Knife_Slider-1':['seal','Knife','Thin blade that cuts through the middle of the cross seal, so one bag is closed at the top and the next bag is closed at the bottom.'],
+ 'Jaw_Lift2-1':['seal','Jaw lift frame','Lift plate B (back) and lift plate F (front), the support bars and feet, gussets, the 20 mm guide rods, the lift stepper motor, belt pulley and home sensor. It moves the jaw carriage up and down.'],
+
+ 'Real_Conveyor-1':['out','Outfeed conveyor','Flat belt conveyor driven by a gear motor. It carries the finished bags past the camera to the crate.'],
+ 'Camera_Unit-1':['out','Camera unit','Raspberry Pi HQ camera with a 6 mm lens and an LED ring light. It takes a picture of every bag to check the seal and print.'],
+ 'Reject_Unit-1':['out','Reject unit','Bag sensor, reflector and a 20 mm air cylinder. When the camera finds a bad bag, the cylinder pushes it off the belt.'],
+ 'Reject_Paddle-1':['out','Reject paddle','Flat paddle on the reject cylinder rod that touches the bag and pushes it into the reject tray.'],
+
+ 'Frame2-1':['frame','Main frame','Welded 40 x 40 mm steel frame: posts, side rails, feet, camera mast, conveyor supports, reject tray and good-bag crate.'],
+ 'Machine_Beams-1':['frame','Cross beams','Cross beams of the frame. The jaw lift plates and other units bolt to them.'],
+ 'Module_Bolts-1':['frame','Module joint bolts','M8 bolts that join the upper and lower frame modules, so the machine can be split for transport.'],
+ 'Leg_Joints_R99-1':['frame','Leg joint gussets','Gussets where the legs bolt to the frame.'],
+
+ 'Control_Cabinet2-1':['serv','Control cabinet','Electrical box with the PLC, power supplies, motor drivers and the touch screen (HMI).'],
+ 'Pneumatics_Air2-1':['serv','Air supply set','Main air parts: filter-regulator and the main air pipe along the side of the machine.'],
+ 'Pneumatic_Lines-1':['serv','Air lines','Air hoses from the valves to the cylinders.'],
+ 'Upgrade_Rev86-1':['serv','Valve panel and air manifold','5/2 solenoid valves, air manifold and junction box. Each valve sends air to one cylinder.'],
+ 'Service_Parts-1':['serv','Service parts (diverter valves)','Valves and fittings for the diverter cylinders.'],
+};
+
+/* ---------- three.js setup ---------- */
+const cv = document.getElementById('cv');
+const renderer = new THREE.WebGLRenderer({canvas:cv, antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.85;
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 0.55;
+const camera = new THREE.PerspectiveCamera(35, 1, 0.01, 100);
+const controls = new OrbitControls(camera, cv);
+controls.enableDamping = true;
+scene.add(new THREE.HemisphereLight(0xffffff, 0x5a606a, 0.5));
+const sun = new THREE.DirectionalLight(0xffffff, 1.6); sun.position.set(3, 5, 4); scene.add(sun);
+const fill = new THREE.DirectionalLight(0xffffff, 0.4); fill.position.set(-4, 2, -3); scene.add(fill);
+const EDGE = new THREE.LineBasicMaterial({ color: 0x1f252c, transparent: true, opacity: 0.45 });
+
+function bgColor(){ return getComputedStyle(document.documentElement).getPropertyValue('--viewer').trim(); }
+function applyBg(){ scene.background = new THREE.Color(bgColor()); }
+applyBg();
+
+function resize(){
+  const r = cv.parentElement.getBoundingClientRect();
+  renderer.setSize(r.width, r.height, false);
+  camera.aspect = r.width / Math.max(1, r.height); camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(cv.parentElement);
+
+/* ---------- state ---------- */
+const parts = [];          // {key, node, group, name, desc, meshes, origPos, center, hidden, li}
+const byNode = new Map();
+let selected = null, xray = false, colorMode = false, quiz = null, edgesOn = true;
+let machineBox = new THREE.Box3(), machineCenter = new THREE.Vector3();
+const SEL = new THREE.Color('#ff8a00');
+
+/* ---------- load ---------- */
+const loader = new GLTFLoader();
+function fetchModel(){
+  // a plain <script> tag works on the web page AND when the HTML is opened from a downloaded folder (file://)
+  return new Promise((ok, fail) => {
+    const done = () => {
+      const b64 = window.VFFS_MODEL; if (!b64) return fail(new Error('model.js missing'));
+      document.querySelector('#bar i').style.width = '100%';
+      ok(Uint8Array.from(atob(b64), c => c.charCodeAt(0)).buffer);
+    };
+    if (window.VFFS_MODEL) return done();
+    const sc = document.createElement('script'); sc.src = 'model.js';
+    sc.onload = done; sc.onerror = () => fail(new Error('model.js not found next to index.html'));
+    document.head.appendChild(sc);
+    document.querySelector('#bar i').style.width = '40%';
+  });
+}
+fetchModel().then(buf => loader.parse(buf, '', gltf => {
+  const root = gltf.scene;
+  root.rotation.x = -Math.PI / 2;          // SolidWorks Z-up -> viewer Y-up
+  scene.add(root);
+  root.updateMatrixWorld(true);
+  const asm = root.getObjectByName('VFFS_Assembly') || root; asmNode = asm;
+  const comps = asm.children.filter(c => !c.isCamera && c.name !== 'current camera');
+  machineBox.setFromObject(asm); machineBox.getCenter(machineCenter);
+  for (const node of comps) {
+    const info = P[node.name] || ['other', node.name.replace(/-\d+$/, '').replace(/_/g, ' '), 'Part of the machine.'];
+    const meshes = [];
+    node.traverse(o => { if (o.isMesh) {
+      o.material = o.material.clone();
+      const c = o.material.color, lum = 0.3 * c.r + 0.59 * c.g + 0.11 * c.b;
+      if (lum > 0.6) c.multiplyScalar(0.72);            // light grey / white parts -> mid steel grey
+      const ed = new THREE.LineSegments(new THREE.EdgesGeometry(o.geometry, 35), EDGE);
+      ed.raycast = () => {}; o.add(ed); o.userData.edges = ed;
+      o.userData.base = { color: o.material.color.clone(), opacity: o.material.opacity, transparent: o.material.transparent };
+      meshes.push(o); byNode.set(o, null);
+    }});
+    if (!meshes.length) continue;
+    const box = new THREE.Box3().setFromObject(node);
+    const p = { key: node.name, node, group: info[0], name: info[1], desc: info[2], meshes,
+                origPos: node.position.clone(), origQuat: node.quaternion.clone(), center: box.getCenter(new THREE.Vector3()), hidden: false };
+    meshes.forEach(m => byNode.set(m, p));
+    parts.push(p);
+  }
+  // explode directions (in the assembly's local frame)
+  const gc = {};
+  for (const p of parts) { (gc[p.group] ||= []).push(p.center); }
+  for (const g in gc) { const v = new THREE.Vector3(); gc[g].forEach(c => v.add(c)); gc[g] = v.divideScalar(gc[g].length); }
+  const inv = new THREE.Matrix4().copy(asm.matrixWorld).invert();
+  const toLocalDir = w => w.clone().transformDirection(inv).multiplyScalar(w.length());
+  for (const p of parts) {
+    const gDir = gc[p.group].clone().sub(machineCenter); gDir.y *= 0.35;
+    const pDir = p.center.clone().sub(gc[p.group]);
+    p.explode = toLocalDir(gDir.multiplyScalar(1.2).add(pDir.multiplyScalar(0.8)));
+  }
+  buildList();
+  resize(); resetView(false);
+  document.getElementById('loading').style.display = 'none';
+}, err => { document.getElementById('ltxt').textContent = 'The model could not be loaded.'; console.error(err); }))
+.catch(err => { document.getElementById('ltxt').textContent = 'The model could not be loaded.'; console.error(err); });
+
+/* ---------- list ---------- */
+const groupsEl = document.getElementById('groups');
+function buildList(){
+  groupsEl.innerHTML = '';
+  for (const g of Object.keys(GROUPS)) {
+    const list = parts.filter(p => p.group === g).sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric:true}));
+    if (!list.length) continue;
+    const d = document.createElement('div'); d.className = 'grp'; d.dataset.g = g;
+    d.innerHTML = `<div class="grp-h"><span class="dot" style="background:${GROUPS[g].color}"></span><span class="nm">${GROUPS[g].name}</span><span class="ct">${list.length}</span><button data-a="only">Only</button><button data-a="eye">Hide</button></div><ul></ul>`;
+    const ul = d.querySelector('ul');
+    for (const p of list) {
+      const li = document.createElement('li'); li.textContent = p.name; p.li = li;
+      li.onclick = () => { select(p); };
+      li.ondblclick = () => { select(p); focus(p); };
+      ul.appendChild(li);
+    }
+    d.querySelector('.grp-h').onclick = e => {
+      const a = e.target.dataset && e.target.dataset.a;
+      if (a === 'only') { parts.forEach(p => setHidden(p, p.group !== g)); refreshGroupButtons(); }
+      else if (a === 'eye') { const anyShown = list.some(p => !p.hidden); list.forEach(p => setHidden(p, anyShown)); refreshGroupButtons(); }
+      else d.classList.toggle('open');
+    };
+    groupsEl.appendChild(d);
+  }
+}
+function refreshGroupButtons(){
+  document.querySelectorAll('.grp').forEach(d => {
+    const list = parts.filter(p => p.group === d.dataset.g);
+    const allHidden = list.every(p => p.hidden);
+    const b = d.querySelector('[data-a=eye]'); b.textContent = allHidden ? 'Show' : 'Hide'; b.classList.toggle('off', allHidden);
+  });
+}
+document.getElementById('search').oninput = e => {
+  const q = e.target.value.trim().toLowerCase();
+  document.querySelectorAll('.grp').forEach(d => {
+    let hits = 0;
+    d.querySelectorAll('li').forEach(li => {
+      const p = parts.find(x => x.li === li);
+      const ok = !q || (p.name + ' ' + p.desc + ' ' + p.key).toLowerCase().includes(q);
+      li.style.display = ok ? '' : 'none'; if (ok) hits++;
+    });
+    d.style.display = hits ? '' : 'none';
+    if (q) d.classList.add('open');
+  });
+};
+
+/* ---------- looks ---------- */
+function setHidden(p, h){ p.hidden = h; p.node.visible = !h; if (p.li) p.li.classList.toggle('hid', h); if (h && selected === p) select(null); }
+function paint(){
+  for (const p of parts) {
+    const isSel = p === selected;
+    const ghost = xray && selected && !isSel;
+    const glass = simOn && !isSel ? GLASS[p.key] : undefined, see = ghost || glass !== undefined;
+    for (const m of p.meshes) {
+      const mat = m.material, b = m.userData.base;
+      if (isSel) mat.color.copy(SEL);
+      else if (colorMode) mat.color.set(GROUPS[p.group].color); else mat.color.copy(b.color);
+      mat.emissive.copy(isSel ? SEL : new THREE.Color(0)); mat.emissiveIntensity = isSel ? 0.2 : 0;
+      const tr = see || b.transparent;
+      if (mat.transparent !== tr) { mat.transparent = tr; mat.needsUpdate = true; }
+      mat.opacity = ghost ? 0.08 : glass !== undefined ? glass : b.opacity; mat.depthWrite = !see;
+      if (m.userData.edges) m.userData.edges.visible = edgesOn && !ghost;
+    }
+  }
+}
+
+/* ---------- select / info ---------- */
+const info = document.getElementById('info');
+function select(p){
+  if (selected && selected.li) selected.li.classList.remove('sel');
+  selected = p;
+  if (p && quiz) { /* keep the answer secret in the list */ }
+  else if (p) {
+    p.li.classList.add('sel');
+    const grp = p.li.closest('.grp'); grp.classList.add('open'); p.li.scrollIntoView({block:'nearest'});
+    if (!quiz) {
+      document.getElementById('iGrp').textContent = GROUPS[p.group].name; document.getElementById('iGrp').style.color = GROUPS[p.group].color;
+      document.getElementById('iName').textContent = p.name;
+      document.getElementById('iDesc').textContent = p.desc;
+      document.getElementById('iCad').textContent = 'CAD name: ' + p.key;
+      info.classList.add('show');
+    }
+  }
+  if (!p) info.classList.remove('show');
+  paint();
+}
+document.getElementById('infoX').onclick = () => select(null);
+document.getElementById('iZoom').onclick = () => selected && focus(selected);
+document.getElementById('iOnly').onclick = () => { if (!selected) return; parts.forEach(p => setHidden(p, p !== selected)); refreshGroupButtons(); focus(selected); };
+document.getElementById('iHide').onclick = () => { if (!selected) return; const p = selected; select(null); setHidden(p, true); refreshGroupButtons(); };
+
+/* ---------- camera moves ---------- */
+let anim = null;
+function flyTo(target, dist, dir){
+  const fromT = controls.target.clone(), fromP = camera.position.clone();
+  const d = (dir || camera.position.clone().sub(controls.target)).normalize();
+  const toP = target.clone().add(d.multiplyScalar(dist));
+  const t0 = performance.now();
+  anim = t => { const k = Math.min(1, (t - t0) / 600), e = k < .5 ? 2*k*k : 1 - Math.pow(-2*k + 2, 2) / 2;
+    controls.target.lerpVectors(fromT, target, e); camera.position.lerpVectors(fromP, toP, e); if (k >= 1) anim = null; };
+}
+function fitDist(box){ const s = box.getSize(new THREE.Vector3()).length(); return Math.max(0.12, s * 0.5 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * 1.05); }
+function focus(p, k = 1.25){ const b = new THREE.Box3().setFromObject(p.node); flyTo(b.getCenter(new THREE.Vector3()), fitDist(b) * k); }
+function resetView(animate = true){
+  const box = new THREE.Box3(); parts.forEach(p => { if (!p.hidden) box.expandByObject(p.node); });
+  if (box.isEmpty()) box.copy(machineBox);
+  const c = box.getCenter(new THREE.Vector3()), d = fitDist(box) * 1.05, dir = new THREE.Vector3(1, 0.45, 1.15);
+  if (animate) flyTo(c, d, dir); else { controls.target.copy(c); camera.position.copy(c.clone().add(dir.normalize().multiplyScalar(d))); }
+}
+
+/* ---------- picking ---------- */
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), tip = document.getElementById('tip');
+function pick(ev){
+  const r = cv.getBoundingClientRect();
+  ndc.set((ev.clientX - r.left) / r.width * 2 - 1, -(ev.clientY - r.top) / r.height * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const objs = []; parts.forEach(p => { if (!p.hidden) objs.push(...p.meshes); });
+  for (const h of ray.intersectObjects(objs, false)) {
+    const p = byNode.get(h.object);
+    if (xray && selected && p !== selected) continue;   // ghosts are not clickable in X-ray
+    return p;
+  }
+  if (xray && selected) { const h = ray.intersectObjects(objs, false)[0]; return h ? byNode.get(h.object) : null; }
+  return null;
+}
+let down = null;
+cv.addEventListener('pointerdown', e => { down = {x:e.clientX, y:e.clientY}; });
+cv.addEventListener('pointerup', e => {
+  if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5) return;
+  if (quiz) return;
+  select(pick(e));
+});
+cv.addEventListener('dblclick', e => { if (quiz) return; const p = pick(e); if (p) { select(p); focus(p); } });
+cv.addEventListener('pointermove', e => {
+  if (e.buttons || e.pointerType !== 'mouse') { tip.style.display = 'none'; return; }
+  const p = quiz ? null : pick(e);
+  if (p) { const r = cv.getBoundingClientRect(); tip.textContent = p.name; tip.style.left = (e.clientX - r.left) + 'px'; tip.style.top = (e.clientY - r.top) + 'px'; tip.style.display = 'block'; cv.style.cursor = 'pointer'; }
+  else { tip.style.display = 'none'; cv.style.cursor = ''; }
+});
+cv.addEventListener('pointerleave', () => tip.style.display = 'none');
+
+/* ---------- toolbar ---------- */
+document.getElementById('bAll').onclick = () => { parts.forEach(p => setHidden(p, false)); refreshGroupButtons(); resetView(); };
+document.getElementById('bReset').onclick = () => resetView();
+const bX = document.getElementById('bXray');
+bX.onclick = () => { xray = !xray; bX.classList.toggle('on', xray); paint(); };
+const bE = document.getElementById('bEdges');
+bE.onclick = () => { edgesOn = !edgesOn; bE.classList.toggle('on', edgesOn); paint(); };
+const bC = document.getElementById('bColor');
+bC.onclick = () => { colorMode = !colorMode; bC.classList.toggle('on', colorMode); paint(); };
+document.getElementById('explode').oninput = e => {
+  const k = e.target.value / 100;
+  parts.forEach(p => p.node.position.copy(p.origPos).addScaledVector(p.explode, k));
+};
+document.getElementById('bTheme').onclick = () => {
+  const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  document.documentElement.dataset.theme = cur === 'dark' ? 'light' : 'dark';
+  try { localStorage.setItem('vffs-theme', document.documentElement.dataset.theme); } catch (e) {}
+  applyBg();
+};
+try { const t = localStorage.getItem('vffs-theme'); if (t) { document.documentElement.dataset.theme = t; applyBg(); } } catch (e) {}
+
+/* ---------- quiz ---------- */
+const qEl = document.getElementById('quiz'), qOpts = document.getElementById('qOpts'), qFb = document.getElementById('qFb');
+let score = 0, asked = 0, prevXray = false;
+function startQuiz(){
+  prevXray = xray; xray = true; bX.classList.add('on');
+  info.classList.remove('show'); quiz = {}; score = 0; asked = 0; qEl.classList.add('show'); nextQ();
+}
+function endQuiz(){ quiz = null; qEl.classList.remove('show'); xray = prevXray; bX.classList.toggle('on', xray); select(null); }
+function nextQ(){
+  const pool = parts.filter(p => !p.hidden && p.group !== 'other');
+  const ans = pool[Math.floor(Math.random() * pool.length)];
+  const names = [...new Set(parts.map(p => p.name))].filter(n => n !== ans.name);
+  const same = parts.filter(p => p.group === ans.group && p.name !== ans.name).map(p => p.name);
+  const opts = [ans.name];
+  const src = [...same.sort(() => Math.random() - .5), ...names.sort(() => Math.random() - .5)];
+  for (const n of src) { if (opts.length >= 4) break; if (!opts.includes(n)) opts.push(n); }
+  opts.sort(() => Math.random() - .5);
+  quiz = { ans, done: false };
+  select(ans); focus(ans, 2.2);
+  qFb.textContent = '';
+  qOpts.innerHTML = '';
+  for (const o of opts) {
+    const b = document.createElement('button'); b.textContent = o;
+    b.onclick = () => {
+      if (quiz.done) return; quiz.done = true; asked++;
+      if (o === ans.name) { score++; b.classList.add('right'); qFb.textContent = 'Correct. ' + ans.desc; }
+      else { b.classList.add('wrong'); [...qOpts.children].find(x => x.textContent === ans.name).classList.add('right'); qFb.textContent = 'It is the ' + ans.name.toLowerCase() + '. ' + ans.desc; }
+      document.getElementById('qScore').textContent = `Score ${score} / ${asked}`;
+    };
+    qOpts.appendChild(b);
+  }
+}
+document.getElementById('bQuiz').onclick = () => quiz ? endQuiz() : startQuiz();
+document.getElementById('qNext').onclick = nextQ;
+document.getElementById('qEnd').onclick = endQuiz;
+
+/* ---------- working simulation ---------- */
+let asmNode = null, simOn = false, simPlaying = false, simSpeed = 1, simT = 0, gen = 0;
+const GLASS = {'Hopper-1':.14,'Splitter3-1':.22,'Frame2-1':.22,'Machine_Beams-1':.25,'Control_Cabinet2-1':.12,'Collect_Chute_R100-1':.22,
+  'Weigh_Buckets_R100-1':.28,'Forming_Tube-1':.25,'Film_Tube-1':.3,'Bag_Former':.45,'Upgrade_Rev86-1':.2,'Pneumatic_Lines-1':.25,
+  'Pneumatics_Air2-1':.25,'Splitter_Mount_Weldment-1':.3,'Splitter_Front_Posts-1':.3,'Hopper_Bolts-1':.3,'Jaw_Lift2-1':.35,'Leg_Joints_R99-1':.3,
+  'Frame_Mounts-1':.4,'Jaw_Carriage-2':.3,'Reject_Unit-1':.45,'VSeal_Unit_R97-1':.3,'Pull_Belt_Steppers-1':.4,'Camera_Unit-1':.45,'Film_Module_Rev74-1':.35,
+  'Gate_Cyl_Beam-1':.5,'Collar_Mount-1':.35,'Lane_Beam_R126-1':.4,'Splitter_Beam_R126-1':.4,'Module_Bolts-1':.3};
+const MM = 0.001, Yax = new THREE.Vector3(0, 1, 0);
+const LANE_Y = [-170, 0, 170];
+const ZJ = 615, TUBE_BOT = 735, BAG_L = 120, DIP = 30, BELT_Z = 432, CAP = 6;
+const tweens = [], waits = [];
+function tween(dur, fn, ease = k => k){ return new Promise(res => tweens.push({ t0: simT, dur: Math.max(dur, 1e-4), fn, ease, res })); }
+const wait = d => tween(d, () => {});
+const until = cond => new Promise(res => waits.push({ cond, res }));
+const easeIn = k => k * k, easeIO = k => k < .5 ? 2*k*k : 1 - Math.pow(-2*k + 2, 2) / 2;
+const part = key => parts.find(p => p.key === key);
+function setOff(key, dx = 0, dy = 0, dz = 0){ const p = part(key); if (p) p.node.position.copy(p.origPos).add(new THREE.Vector3(dx, dy, dz).multiplyScalar(MM)); }
+// turn a part by `deg` about a hinge line parallel to Y through (px, pz), starting from its CAD pose
+const _q = new THREE.Quaternion(), _v = new THREE.Vector3();
+function turn(key, deg, px, pz){
+  const p = part(key); if (!p) return;
+  const P = new THREE.Vector3(px*MM, 0, pz*MM); P.y = p.origPos.y;
+  _q.setFromAxisAngle(Yax, deg * Math.PI / 180);
+  _v.copy(p.origPos).sub(P).applyQuaternion(_q); p.node.position.copy(P).add(_v);
+  p.node.quaternion.copy(_q).multiply(p.origQuat);
+}
+// gate cylinder follows the gate lever: the barrel swings on its top mount and the rod extends to the lever pin
+function gateCyl(n, g){
+  const H = [30, 1734], P = [-10, 1880], T0 = [-10, 1728], a = -65 * g * Math.PI / 180;
+  const rx = T0[0] - H[0], rz = T0[1] - H[1];
+  const tx = H[0] + rx * Math.cos(a) + rz * Math.sin(a), tz = H[1] - rx * Math.sin(a) + rz * Math.cos(a);
+  const dx = tx - P[0], dz = tz - P[1], L = Math.hypot(dx, dz), L0 = P[1] - T0[1];
+  const phi = Math.atan2(-dx, -dz) * 180 / Math.PI;
+  turn(`Cyl_Barrel_B${n}-1`, phi, P[0], P[1]); turn(`Cyl_Rod_B${n}-1`, phi, P[0], P[1]);
+  const p = part(`Cyl_Rod_B${n}-1`); if (p) p.node.position.add(new THREE.Vector3(dx / L * (L - L0) * MM, 0, dz / L * (L - L0) * MM));
+}
+function restoreParts(){ for (const p of parts) { p.node.position.copy(p.origPos); p.node.quaternion.copy(p.origQuat); } }
+
+/* machine state -> pose of the CAD parts */
+const S = { div: 1, gate: [0,0,0], door: [0,0,0], jaw: 0, dip: 0, knife: 0, heat: 0, dancer: 0, paddle: 0 };
+const DOOR0 = [20.24, 43.63, 0], LEV0 = [8.33, 17.13, 0], ROD0 = [-11.74, 0, -35];   // CAD rest poses
+function pose(){
+  const d = -91 + S.div * 45.5;
+  setOff('Diverter_Shuttle-1', 0, d, 0); setOff('AirCyl_RodB-1', 0, d, 0); setOff('AirCyl_Unit-1', 0, (d + 91) * 0.4 - 36, 0);
+  [1,2,3].forEach((n, i) => { turn(`Brush_Strip_${n}-1`, -65 * S.gate[i], 30, 1734); gateCyl(n, S.gate[i]); });
+  [1,2,3].forEach((n, i) => { const th = 43.6 * S.door[i];
+    turn(`Weigh_Door_R103_${n}-1`, th - DOOR0[i], 22, 1410); turn(`Strut_Lever_R105_${n}-1`, 0.393 * th - LEV0[i], 53, 1371);
+    setOff(`Cyl_Rod_DH${n}-1`, (-35 + 35 * S.door[i]) - ROD0[i], 0, 0); });
+  const open = 1 - S.jaw, dz = -S.dip;
+  setOff('Jaw_Back-1', -37 * open, 0, dz); setOff('Jaw_Front-2', 37 * open, 0, dz);
+  setOff('Knife_Slider-1', 37 * open - 18 * S.knife, 0, dz); setOff('Jaw_Carriage-2', 0, 0, dz);
+  setOff('VSeal_Heater-1', 8 * (1 - S.heat), 0, 0);
+  turn('Dancer_Arm_D-1', 7 * S.dancer, -260, 796);
+  setOff('Reject_Paddle-1', 190 * S.paddle, 0, 0);
+}
+const to = (key, val, dur, ease = easeIO) => { const from = S[key]; return tween(dur, k => S[key] = from + (val - from) * k, ease); };
+
+/* product items */
+const itemGeo = new THREE.SphereGeometry(9 * MM, 14, 10);
+const itemMats = ['#e63946','#ffb703','#2a9d8f','#8338ec','#fb5607','#3a86ff'].map(c => new THREE.MeshStandardMaterial({ color: c, roughness: .35 }));
+const simObjs = [];
+function newItem(parent, x, y, z){
+  const m = new THREE.Mesh(itemGeo, itemMats[Math.floor(Math.random() * itemMats.length)]);
+  m.scale.set(1, 1, .7); m.rotation.set(Math.random()*3, Math.random()*3, 0);
+  m.position.set(x*MM, y*MM, z*MM); parent.add(m); simObjs.push(m); return m;
+}
+function moveTo(m, x, y, z, dur, ease = k => k){ const a = m.position.clone(), b = new THREE.Vector3(x*MM, y*MM, z*MM);
+  return tween(dur, k => m.position.lerpVectors(a, b, k), ease); }
+const rnd = a => (Math.random() * 2 - 1) * a;
+
+/* film: printed texture, roll, web through the dancer, bag on the tube */
+const tex = (() => { const c = document.createElement('canvas'); c.width = 256; c.height = 64; const g = c.getContext('2d');
+  g.fillStyle = '#7cc4ea'; g.fillRect(0, 0, 256, 64); g.fillStyle = '#e63946'; g.fillRect(0, 0, 18, 64);
+  g.fillStyle = '#ffffff'; g.font = 'bold 26px sans-serif'; g.fillText('CANDY', 60, 42); g.fillStyle = '#1b1f24'; g.fillRect(232, 6, 10, 10);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; return t; })();
+const webMat = new THREE.MeshStandardMaterial({ map: tex, side: THREE.DoubleSide, roughness: .35, transparent: true, opacity: .85 });
+const rollMat = new THREE.MeshStandardMaterial({ map: tex, roughness: .4 });
+const PATH = [[-500,975],[-300,992],[-284,875],[-208,961],[-152,840],[-124,987],[-60,1100],[-62,1100]];
+const FILM_W = 210, R_TUBE = 34, Z_TT = 980, Z_LIP = 1100, X_LIP = -62;
+let webLen = 0;
+let filmPos = 0, roll = null;
+function buildWeb(){
+  const pos = [], uv = [], idx = []; let L = 0;
+  PATH.forEach((p, k) => { if (k) L += Math.hypot(p[0] - PATH[k-1][0], p[1] - PATH[k-1][1]);
+    pos.push(p[0]*MM, -FILM_W/2*MM, p[1]*MM, p[0]*MM, FILM_W/2*MM, p[1]*MM); uv.push(L / 250, 0, L / 250, 1);
+    if (k) { const a = 2*(k-1); idx.push(a, a+1, a+2, a+1, a+3, a+2); } });
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx); g.computeVertexNormals();
+  const m = new THREE.Mesh(g, webMat); asmNode.add(m); simObjs.push(m);
+  webLen = L; buildCollar();
+  roll = new THREE.Mesh(new THREE.CylinderGeometry(172*MM, 172*MM, FILM_W*MM, 48), [rollMat, rollMat, new THREE.MeshStandardMaterial({ color: '#e9eef2' })]);
+  roll.position.set(-500*MM, 0, 805*MM); asmNode.add(roll); simObjs.push(roll);
+  roll.material[0].map = tex.clone(); roll.material[0].map.repeat.set(5, 1); roll.material[0].map.needsUpdate = true;
+}
+/* forming collar: the flat web folds round the tube; then the film runs down the tube (u along the travel) */
+function buildCollar(){
+  const NS = 14, NT = 32, pos = [], uv = [], idx = [];
+  const P = (s, t) => {                       // s 0 = lip, 1 = tube top; t -1..1 across the film
+    const th = t * Math.PI, e = s * s * (3 - 2 * s);
+    const fx = X_LIP, fy = t * FILM_W / 2, fz = Z_LIP;
+    const cx = -R_TUBE * Math.cos(th), cy = R_TUBE * Math.sin(th), cz = Z_TT;
+    const z = fz + (cz - fz) * s - 18 * Math.abs(t) * Math.sin(Math.PI * s);   // edges dip over the shoulder
+    return [fx + (cx - fx) * e, fy + (cy - fy) * e, z]; };
+  let len = 0, prev = null;
+  for (let i = 0; i <= NS; i++) { const s = i / NS, c = P(s, 0);
+    if (prev) len += Math.hypot(c[0] - prev[0], c[1] - prev[1], c[2] - prev[2]); prev = c;
+    for (let j = 0; j <= NT; j++) { const t = -1 + 2 * j / NT, q = P(s, t); pos.push(q[0]*MM, q[1]*MM, q[2]*MM); uv.push((webLen + len) / 250, j / NT); }
+    if (i) for (let j = 0; j < NT; j++) { const a = (i-1)*(NT+1) + j, b = a + NT + 1; idx.push(a, b, a+1, a+1, b, b+1); } }
+  collarLen = len;
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx); g.computeVertexNormals();
+  const m = new THREE.Mesh(g, webMat); asmNode.add(m); simObjs.push(m);
+  // sleeve on the tube: from the tube top down to the tube end
+  const H = Z_TT - TUBE_BOT, sg = new THREE.CylinderGeometry(R_TUBE*MM, R_TUBE*MM, H*MM, 40, 1, true);
+  const u = sg.attributes.uv; for (let k = 0; k < u.count; k++) { const a = u.getX(k), b = u.getY(k); u.setXY(k, (webLen + collarLen + (1 - b) * H) / 250, a); }
+  sg.rotateX(Math.PI / 2);
+  const sl = new THREE.Mesh(sg, webMat); sl.position.set(0, 0, (TUBE_BOT + H / 2)*MM); asmNode.add(sl); simObjs.push(sl);
+  const fin = new THREE.Mesh(new THREE.BoxGeometry(10*MM, 3*MM, H*MM), finMat); fin.position.set((R_TUBE + 5)*MM, 0, (TUBE_BOT + H / 2)*MM); asmNode.add(fin); simObjs.push(fin);
+}
+let collarLen = 0;
+function moveFilm(d){ filmPos += d; tex.offset.x = -filmPos / 250; if (roll) roll.rotation.y = filmPos / 172; }
+
+const filmMat = new THREE.MeshStandardMaterial({ map: tex, transparent: true, opacity: .55, side: THREE.DoubleSide, depthWrite: false, roughness: .25 });
+const finMat = new THREE.MeshStandardMaterial({ color: '#1f6f99', roughness: .4 });
+const bodyGeo = new THREE.CylinderGeometry(1, 1, 1, 28, 1, true);
+{ const u = bodyGeo.attributes.uv; for (let k = 0; k < u.count; k++) { const a = u.getX(k), b = u.getY(k); u.setXY(k, b, a); } }
+bodyGeo.rotateX(Math.PI / 2); bodyGeo.translate(0, 0, .5);
+const finGeo = new THREE.BoxGeometry(4*MM, 100*MM, 12*MM);
+function newBag(zs){
+  const g = new THREE.Group(); g.position.set(0, 0, zs*MM);
+  const mat = filmMat.clone(); mat.map = tex.clone(); mat.map.needsUpdate = true;
+  const body = new THREE.Mesh(bodyGeo, mat); body.scale.set(20*MM, 46*MM, 1); body.renderOrder = 2; g.add(body);
+  const f = new THREE.Mesh(finGeo, finMat); f.position.z = 6*MM; g.add(f);
+  g.userData = { body, open: true, len: 0, items: [], bad: false, C: zs + filmPos };
+  bagTex(g, 1);
+  asmNode.add(g); simObjs.push(g); return g;
+}
+// texture phase that matches the sleeve: texcoord = (webLen + collarLen + Z_TT - z - filmPos) / 250, fixed to the film
+function bagTex(g, H){ const t = g.userData.body.material.map; t.repeat.set(-H / 250, 1); t.offset.set((webLen + collarLen + Z_TT - g.userData.C) / 250, 0); }
+function bagUpdate(g){ if (g.userData.open) { const H = Math.max(1, TUBE_BOT - g.position.z / MM); g.userData.body.scale.z = H * MM; bagTex(g, H); } }
+function sealTop(g){
+  g.userData.open = false; const H = ZJ - S.dip - g.position.z / MM; g.userData.body.scale.z = H * MM;
+  const f = new THREE.Mesh(finGeo, finMat); f.position.z = (H - 6) * MM; g.add(f); g.userData.len = H; bagTex(g, H);
+}
+
+/* camera flash */
+const flashMat = new THREE.MeshBasicMaterial({ color: '#fff4b0', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
+const flashGeo = new THREE.ConeGeometry(75*MM, 200*MM, 32, 1, true); flashGeo.rotateX(Math.PI / 2);
+
+function hopperPile(){
+  for (let i = 0; i < 110; i++) { const z = 2050 + Math.random() * 170, r = 25 + (z - 2010) * .9;
+    const a = Math.random() * 6.28, rr = Math.sqrt(Math.random()) * r; newItem(asmNode, -130 + Math.cos(a)*rr, 27 + Math.sin(a)*rr, z); }
+}
+
+/* ---- dosing: continuous hopper flow, diverter, lanes, gates, buckets ---- */
+const lanes = [0,1,2].map(() => ({ q: [], reserved: 0, transit: 0, landed: [], next: 0 }));
+let doorsBusy = false, feedT = 0, divMoving = false, divLane = 1;
+const gateWanted = i => !lanes[i].dumping && lanes[i].reserved < CAP;
+const slotPos = (i, k) => { const dx = 5 + k * 20; return [-dx, LANE_Y[i] + ((k * 37) % 50 - 25), 1712 + dx * .364]; };
+function needOf(i){ const L = lanes[i]; return CAP + 1 - L.reserved - L.transit - L.q.length; }
+async function feedItem(i, g){
+  const L = lanes[i]; L.transit++;
+  const m = newItem(asmNode, -130 + rnd(25), 27 + rnd(25), 2025);
+  await moveTo(m, -137, LANE_Y[i] + rnd(15), 1945, .22, easeIn); if (g !== gen) return;
+  await moveTo(m, -175, LANE_Y[i] + rnd(35), 1768, .2); if (g !== gen) return;
+  const s = slotPos(i, L.q.length);
+  await moveTo(m, s[0], s[1], s[2], .5, k => k*k*.4 + k*.6); if (g !== gen) return;
+  L.transit--;
+  L.q.push(m); restack(i);
+}
+function restack(i){ lanes[i].q.forEach((m, k) => { const s = slotPos(i, k); const want = new THREE.Vector3(s[0]*MM, s[1]*MM, s[2]*MM);
+  if (m.position.distanceTo(want) > 2*MM) moveTo(m, s[0], s[1], s[2], .12); }); }
+async function dropToBucket(i, m, g){
+  const L = lanes[i], n = L.reserved++; const layer = Math.floor(n / 3);
+  await moveTo(m, 40 + rnd(18) + layer * 12, LANE_Y[i] + rnd(38), 1450 + layer * 15, .32, easeIn); if (g !== gen) return;
+  L.landed.push(m); hudNums();
+}
+function dosingTick(dt, g){
+  // gates follow the bucket state; queued product drops in one by one while a gate is open
+  for (let i = 0; i < 3; i++) {
+    const L = lanes[i], tgt = gateWanted(i) ? 1 : 0;
+    S.gate[i] += Math.sign(tgt - S.gate[i]) * Math.min(Math.abs(tgt - S.gate[i]), dt / .2);
+    L.next -= dt;
+    if (S.gate[i] > .8 && L.q.length && L.next <= 0 && L.reserved < CAP && !L.dumping) { const m = L.q.shift(); dropToBucket(i, m, g); restack(i); L.next = .09; }
+  }
+  // diverter: send the flow to the lane that needs the most (the lightest bucket)
+  if (divMoving) return;
+  let best = -1, bn = 0; for (let i = 0; i < 3; i++) { const n = needOf(i) + (i === divLane ? .5 : 0); if (n > bn) { bn = n; best = i; } }
+  if (best < 0) return;                                    // all buckets full and lanes stocked: hopper flow waits
+  if (best !== divLane) { divMoving = true; divLane = best; to('div', best, .3).then(() => divMoving = false); return; }
+  feedT -= dt; if (feedT <= 0) { feedItem(best, g); feedT = running ? .26 : .11; }
+}
+
+/* ---- HUD ---- */
+let bagN = 0, goodN = 0, badN = 0, curBag = null;
+const EXPL_OLD = ['Product flows all the time from the hopper. The diverter chute points the flow at the lightest bucket, and each brush gate stays open until its bucket has a full share.',
+  'All three buckets are full. Each one hangs on its own load cell, and the PLC adds the three weights to check the dose.',
+  'The door cylinders push the door levers. The three doors open and the dose falls through the funnel and the forming tube into the film. The gates open again at once to refill the buckets.',
+  'The pull belts pull the film down one bag length. The film comes off the roll, over the dancer rollers and the forming collar. The dancer arm swings to keep the tension steady.',
+  'The hot jaws close: top seal of this bag and bottom seal of the next one. The jaws move down with the film while they seal, the knife cuts, and the bag drops onto the conveyor.'];
+const EXPL = ['Start-up: product flows from the hopper and the diverter fills all three buckets once. The film starts when every bucket holds 30 g.',
+  'Product flows all the time. The diverter points the flow at the lightest bucket; each brush gate stays open until its bucket holds 30 g, and closes while its own door is open.',
+  'One bucket = one bag. After each cut, the next full bucket in turn (1, 2, 3, 1 ...) opens its door and its 30 g falls through the funnel and the tube into the moving film. The other two keep their dose ready.',
+  'The film never stops: the roll turns, the film runs over the dancer and collar at a steady speed. The flying jaws close on the moving film and ride down with it while they seal, the knife cuts, then the jaws open and fly back up.'];
+function hud(step){ document.querySelectorAll('#sSteps li').forEach((li, i) => li.classList.toggle('on', i === step)); document.getElementById('sExpl').textContent = EXPL[step]; }
+function hudNums(){
+  const w = lanes.map(L => L.landed.length * 5);
+  document.getElementById('sW').innerHTML = w.map((g, i) => `<span${lanes[i].dumping ? ' style="color:var(--sel)"' : ''}>Bucket ${i+1}: <b>${lanes[i].dumping ? 'emptying' : g + ' g'}</b></span>`).join('') + `<span>Each bag: <b>30 g</b></span>`;
+  document.getElementById('sC').textContent = `Bags made ${bagN} · Good ${goodN} · Rejected ${badN}`;
+}
+const outMsg = t => document.getElementById('sOut').textContent = t;
+
+/* ---- packing: discharge, pull, seal, cut ---- */
+async function dropItem(m, i, bag, g){
+  await wait(Math.random() * .12); if (g !== gen) return;
+  await moveTo(m, 25 + rnd(15), LANE_Y[i] * .6 + rnd(15), 1320, .22, easeIn); if (g !== gen) return;
+  await moveTo(m, rnd(12), rnd(12), 1000, .22, easeIn); if (g !== gen) return;
+  const k = bag.userData.items.length; bag.userData.items.push(m);
+  bag.attach(m);                                       // from here the item rides with the moving film
+  await moveTo(m, rnd(14), rnd(34), 12 + Math.floor(k / 3) * 12, .28, easeIn);
+}
+async function outfeed(bag, g){
+  const p0 = bag.position.clone(), p1 = new THREE.Vector3(-93*MM, 0, (BELT_Z + 18)*MM);
+  await tween(.35, k => { bag.position.lerpVectors(p0, p1, k); bag.rotation.y = k * Math.PI / 2; }, easeIn); if (g !== gen) return;
+  bag.userData.items.forEach(m => { const a = m.position.clone(), b = new THREE.Vector3(rnd(10)*MM, rnd(34)*MM, (15 + Math.random() * 90)*MM);
+    tween(.3, k => m.position.lerpVectors(a, b, k)); });
+  const belt = (y, sp = 160) => { const a = bag.position.y / MM; return tween(Math.abs(y - a) / sp, k => bag.position.y = (a + (y - a) * k) * MM); };
+  await belt(150); if (g !== gen) return;
+  tween(.25, k => flashMat.opacity = .55 * Math.sin(k * Math.PI));
+  outMsg(bag.userData.bad ? 'Camera found a seal defect: this bag will be pushed out.' : 'Camera: bag OK, it goes on to the crate.');
+  await belt(330); if (g !== gen) return;
+  if (bag.userData.bad) {
+    await to('paddle', 1, .3); if (g !== gen) return;
+    const a = bag.position.clone(); await tween(.3, k => bag.position.x = a.x + .2 * k); if (g !== gen) return;
+    to('paddle', 0, .4);
+    const b = bag.position.clone(); await tween(.35, k => { bag.position.x = b.x + .06 * k; bag.position.z = b.z - .16 * k * k; }); if (g !== gen) return;
+    badN++; outMsg('Bad bag pushed into the reject tray.');
+  } else {
+    await belt(470); if (g !== gen) return;
+    const b = bag.position.clone(); await tween(.35, k => { bag.position.y = b.y + .05 * k; bag.position.z = b.z - .14 * k * k; }); if (g !== gen) return;
+    goodN++; outMsg('Good bag dropped into the crate.');
+  }
+  hudNums(); await wait(3); if (g !== gen) return; bag.removeFromParent();
+}
+/* continuous film: the film never stops; the flying jaws ride down with it while they seal */
+const T_CYC = 2.0, V_FILM = BAG_L / T_CYC;            // one bag every 2 s at 1x, film 60 mm/s
+let running = false, cyc0 = 0, ev = {}, sealed = null, rot = 0, cycN = 0;
+function packTick(dt, g){
+  if (!running) {                                     // start-up: fill all three buckets once
+    hud(0);
+    if (lanes.every(L => L.landed.length >= CAP)) { running = true; cyc0 = simT - .55; ev = { seal: 1, cut: 1 }; }   // first dose goes straight into the first bag
+    return;
+  }
+  moveFilm(V_FILM * dt);
+  curBag.position.z -= V_FILM * dt * MM;
+  if (sealed) sealed.position.z -= V_FILM * dt * MM;
+  S.dancer = .25 * Math.sin(simT * 2.2);
+  let ph = simT - cyc0;
+  if (ph >= T_CYC) { cyc0 += T_CYC; ph -= T_CYC; ev = {}; cycN++; }
+  // jaw carriage: close (0-.1), ride down with the film (0-.5), open (.5-.6), fly back up (.6-1.0)
+  const ride = V_FILM * Math.min(ph, .5);
+  if (ph < .5) { S.jaw = Math.min(1, ph / .1); S.dip = ride; }
+  else if (ph < .6) { S.jaw = 1 - (ph - .5) / .1; S.dip = V_FILM * .5; }
+  else if (ph < 1.0) { S.jaw = 0; S.dip = V_FILM * .5 * (1 - easeIO((ph - .6) / .4)); }
+  else { S.jaw = 0; S.dip = 0; }
+  S.knife = ph > .42 && ph < .52 ? Math.sin((ph - .42) / .1 * Math.PI) : 0;
+  if (!ev.seal && ph >= .05) { ev.seal = 1; hud(3);
+    sealTop(curBag); sealed = curBag; curBag = newBag(ZJ - V_FILM * .05); }
+  if (!ev.cut && ph >= .5) { ev.cut = 1;
+    const done = sealed; sealed = null; bagN++; done.userData.bad = bagN % 3 === 0; hudNums(); outfeed(done, g); hud(2); }
+  if (!ev.feed && ph >= 1.2) { ev.feed = 1; hud(1); }
+  if (!ev.dump && ph >= .55) { ev.dump = 1;
+    // one bucket = one bag: take the next full bucket in turn (1, 2, 3, 1, ...)
+    let i = -1; for (let k = 0; k < 3; k++) { const j = (rot + k) % 3; if (lanes[j].landed.length >= CAP) { i = j; break; } }
+    if (i >= 0) { rot = (i + 1) % 3; dumpBucket(i, curBag, g); } }
+}
+async function dumpBucket(i, bag, g){
+  const L = lanes[i]; L.dumping = true; lastDump = i; hudNums();
+  await to2(i, 1, .2); if (g !== gen) return;
+  const items = L.landed; L.landed = []; L.reserved = 0; hudNums();
+  items.forEach(m => dropItem(m, i, bag, g));
+  await wait(.35); if (g !== gen) return;
+  await to2(i, 0, .25); if (g !== gen) return;
+  L.dumping = false;
+}
+const to2 = (i, val, dur) => { const from = S.door[i]; return tween(dur, k => S.door[i] = from + (val - from) * easeIO(k)); };
+let lastDump = -1;
+function simUpdate(dt, force){
+  if (!simOn || (!simPlaying && !force)) return;
+  dt = Math.min(dt, .1) * simSpeed; simT += dt;
+  for (let i = tweens.length - 1; i >= 0; i--) { const tw = tweens[i], k = Math.min(1, (simT - tw.t0) / tw.dur); tw.fn(tw.ease(k)); if (k >= 1) { tweens.splice(i, 1); tw.res(); } }
+  for (let i = waits.length - 1; i >= 0; i--) if (waits[i].cond()) { const w = waits.splice(i, 1)[0]; w.res(); }
+  dosingTick(dt, gen);
+  if (curBag) { packTick(dt, gen); bagUpdate(curBag); }
+  pose();
+}
+function clearSim(){
+  gen++; tweens.length = 0; waits.length = 0; simObjs.forEach(o => o.removeFromParent()); simObjs.length = 0;
+  lanes.forEach(L => { L.q = []; L.reserved = 0; L.transit = 0; L.landed = []; L.next = 0; L.dumping = false; });
+  running = false; sealed = null; rot = 0; ev = {}; cycN = 0;
+  doorsBusy = false; divMoving = false; divLane = 1; feedT = 0; bagN = goodN = badN = 0; curBag = null; filmPos = 0; roll = null;
+  Object.assign(S, { div: 1, gate: [0,0,0], door: [0,0,0], jaw: 0, dip: 0, knife: 0, heat: 0, dancer: 0, paddle: 0 });
+}
+function startSim(){
+  clearSim(); simT = 0;
+  hopperPile(); buildWeb(); moveFilm(0); setFilmCad(false);
+  const flash = new THREE.Mesh(flashGeo, flashMat); flash.position.set(-33*MM, 200*MM, (BELT_Z + 100)*MM); asmNode.add(flash); simObjs.push(flash);
+  pose(); hudNums(); outMsg('—'); simPlaying = true; setPlayBtn();
+  curBag = newBag(ZJ); S.heat = 1;
+}
+function setFilmCad(v){ const o = asmNode && asmNode.getObjectByName('Film_Tube-1'); if (o) o.visible = v; }
+function setPlayBtn(){ document.getElementById('sPlay').textContent = simPlaying ? 'Pause' : 'Play'; }
+function simMode(on){
+  if (on === simOn) return;
+  if (quiz) endQuiz();
+  select(null);
+  simOn = on;
+  const ex = document.getElementById('explode'); ex.value = 0; ex.disabled = on; ex.dispatchEvent(new Event('input'));
+  document.getElementById('sim').classList.toggle('show', on);
+  document.getElementById('help').style.display = on ? 'none' : '';
+  document.getElementById('bSim').classList.toggle('on', on);
+  if (on) { startSim(); simView('dose'); } else { clearSim(); restoreParts(); setFilmCad(true); simPlaying = false; }
+  paint();
+}
+function simView(v){
+  const T = { all: null, dose: [[-40, 0, 1650], 1.7], film: [[-280, 0, 900], 1.5, [0.35, 0.4, 1.2]], seal: [[0, 0, 660], 1.25], out: [[-30, 200, 470], 1.5] }[v];
+  if (!T) return resetView();
+  const c = asmNode.localToWorld(new THREE.Vector3(...T[0]).multiplyScalar(MM));
+  flyTo(c, T[1], new THREE.Vector3(...(T[2] || [1, 0.45, 1.15])));
+}
+document.getElementById('bSim').onclick = () => simMode(!simOn);
+document.getElementById('sPlay').onclick = () => { simPlaying = !simPlaying; setPlayBtn(); };
+document.getElementById('sRestart').onclick = () => { startSim(); };
+document.getElementById('sExit').onclick = () => simMode(false);
+document.getElementById('sSpeed').onchange = e => simSpeed = +e.target.value;
+document.querySelectorAll('[data-v]').forEach(b => b.onclick = () => simView(b.dataset.v));
+
+/* ---------- loop ---------- */
+let lastT = 0;
+renderer.setAnimationLoop(t => { const dt = lastT ? (t - lastT) / 1000 : 0; lastT = t; if (anim) anim(t); simUpdate(dt); controls.update(); renderer.render(scene, camera); });
+window.__vffs = { parts, select, focus, camera, controls, get simUpdate(){ return simUpdate; }, get simMode(){ return simMode; }, get simView(){ return simView; }, get S(){ return S; }, get bag(){ return curBag; }, get objs(){ return simObjs; }, get asm(){ return asmNode; } };
+</script>
+</body>
+</html>
